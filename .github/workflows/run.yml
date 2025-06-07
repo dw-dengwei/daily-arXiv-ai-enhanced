@@ -34,8 +34,30 @@ jobs:
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
         git add .
+        # 检查是否有变更需要提交
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
         git commit -m "update"
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Pull latest changes and push
+      run: |
+        # 设置Git配置以处理自动合并
+        git config pull.rebase true
+        git config rebase.autoStash true
+        
+        # 尝试推送，如果失败则拉取并重试
+        for i in {1..3}; do
+          echo "Push attempt $i"
+          if git push origin main; then
+            echo "Push successful"
+            break
+          else
+            echo "Push failed, pulling latest changes..."
+            git pull origin main --no-edit || true
+            if [ $i -eq 3 ]; then
+              echo "Failed to push after 3 attempts"
+              exit 1
+            fi
+          fi
+        done
