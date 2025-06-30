@@ -119,6 +119,9 @@ jobs:
         today=${{ steps.crawl_step.outputs.crawl_date }}
         echo "转换为Markdown格式... / Converting to Markdown format..."
         
+        # 设置环境变量 / Set environment variables
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        
         cd to_md
         
         # 使用AI增强文件进行转换 / Use AI enhanced file for conversion
