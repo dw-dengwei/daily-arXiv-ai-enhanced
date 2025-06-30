@@ -20,165 +20,61 @@ jobs:
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         uv sync
-        
-    - name: Crawl arXiv papers
-      id: crawl_step
+    - name: Run script
+      id: run_script
       run: |
         source .venv/bin/activate
-        today=$(date -u "+%Y-%m-%d")
-        echo "开始爬取 $today 的arXiv论文... / Starting to crawl $today arXiv papers..."
-        
-        cd daily_arxiv
         export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
         export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
         export LANGUAGE="${{ vars.LANGUAGE }}"
         export CATEGORIES="${{ vars.CATEGORIES }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
+        bash run.sh
+        echo "script_exit_code=$?" >> $GITHUB_OUTPUT
         
-        # 使用Scrapy爬取，内置去重检查管道会自动执行
-        # Use Scrapy to crawl, built-in dedup check pipeline will execute automatically
-        scrapy crawl arxiv -o ../data/${today}.jsonl
-        
-        # 检查爬取是否成功 / Check if crawling was successful
-        if [ ! -f "../data/${today}.jsonl" ]; then
-            echo "爬取失败，未生成数据文件 / Crawling failed, no data file generated"
-            exit 1
-        fi
-        
-        echo "crawl_date=$today" >> $GITHUB_OUTPUT
-        echo "爬取完成 / Crawling completed"
-        
-    - name: Check for duplicates
-      id: dedup_check
+    - name: Check if content was processed
       run: |
-        source .venv/bin/activate
-        echo "检查Scrapy内置去重结果... / Checking Scrapy built-in dedup results..."
-        
-        cd daily_arxiv
-        # 执行去重状态检查脚本 / Execute dedup status check script
-        python daily_arxiv/check_stats.py
-        
-        # 获取退出码 / Get exit code
-        dedup_exit_code=$?
-        echo "dedup_exit_code=$dedup_exit_code" >> $GITHUB_OUTPUT
-        
-                 case $dedup_exit_code in
-             0)
-                 echo "发现新内容，将继续处理... / New content found, will continue processing..."
-                 echo "has_new_content=true" >> $GITHUB_OUTPUT
-                 ;;
-             1)
-                 echo "今日无新论文，工作流结束 / No new papers today, workflow ends"
-                 echo "has_new_content=false" >> $GITHUB_OUTPUT
-                 echo "skip_reason=no_new_papers" >> $GITHUB_OUTPUT
-                 ;;
-             2)
-                 echo "内容重复，工作流结束 / Content duplicated, workflow ends"
-                 echo "has_new_content=false" >> $GITHUB_OUTPUT
-                 echo "skip_reason=duplicate_content" >> $GITHUB_OUTPUT
-                 ;;
-             *)
-                 echo "去重检查状态未知，继续处理... / Dedup check status unknown, continuing processing..."
-                 echo "has_new_content=true" >> $GITHUB_OUTPUT
-                 ;;
-         esac
-        
-    - name: AI Enhancement Processing
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        source .venv/bin/activate
-        today=${{ steps.crawl_step.outputs.crawl_date }}
-        echo "开始AI增强处理... / Starting AI enhancement processing..."
-        
-        cd ai
-        export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-        export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
-        export LANGUAGE="${{ vars.LANGUAGE }}"
-        export MODEL_NAME="${{ vars.MODEL_NAME }}"
-        
-        python enhance.py --data ../data/${today}.jsonl
-        
-        # 检查AI处理是否成功 / Check if AI processing was successful
-        if [ $? -ne 0 ]; then
-            echo "AI处理失败 / AI processing failed"
-            exit 1
-        fi
-        echo "AI增强处理完成 / AI enhancement processing completed"
-        
-    - name: Convert to Markdown
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        source .venv/bin/activate
-        today=${{ steps.crawl_step.outputs.crawl_date }}
-        echo "转换为Markdown格式... / Converting to Markdown format..."
-        
-        cd to_md
-        python convert.py --data ../data/${today}_AI_enhanced_${LANGUAGE}.jsonl
-        
-        # 检查转换是否成功 / Check if conversion was successful
-        if [ $? -ne 0 ]; then
-            echo "Markdown转换失败 / Markdown conversion failed"
-            exit 1
-        fi
-        echo "Markdown转换完成 / Markdown conversion completed"
-        
-    - name: Update file list
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        echo "更新文件列表... / Updating file list..."
-        ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
-        echo "文件列表更新完成 / File list updated"
-        
-    - name: Summary
-      run: |
-        if [ "${{ steps.dedup_check.outputs.has_new_content }}" = "true" ]; then
-          echo "✅ 工作流完成：发现新内容并成功处理 / Workflow completed: New content found and processed successfully"
+        # Scrapy集成方案的退出码含义 / Exit code meanings for Scrapy integrated solution:
+        # 0: 发现新内容并成功处理 / New content found and processed successfully
+        # 2: 今日无新论文 / No new papers today  
+        # 3: 内容重复 / Content duplicated
+        # 1: 处理失败 / Processing failed
+        if [ "${{ steps.run_script.outputs.script_exit_code }}" = "0" ]; then
+          echo "发现新内容并成功处理，继续提交 / New content processed successfully, proceeding with commit"
         else
-          case "${{ steps.dedup_check.outputs.skip_reason }}" in
-            "no_new_papers")
-              echo "ℹ️ 工作流完成：今日无新论文 / Workflow completed: No new papers today"
-              ;;
-            "duplicate_content")
-              echo "ℹ️ 工作流完成：检测到重复内容 / Workflow completed: Duplicate content detected"
-              ;;
-            *)
-              echo "ℹ️ 工作流完成：未知原因跳过处理 / Workflow completed: Skipped for unknown reason"
-              ;;
-          esac
+          echo "无新内容、重复内容或处理失败，跳过提交 / No new content, duplicate content, or processing failed - skipping commit"
+          echo "退出码 / Exit code: ${{ steps.run_script.outputs.script_exit_code }}"
+          exit 0
         fi
         
-    - name: Commit changes
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+    - name: commit
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
         git add .
-        # 检查是否有变更需要提交 / Check if there are changes to commit
+        # 检查是否有变更需要提交
         if git diff --staged --quiet; then
-          echo "没有变更需要提交 / No changes to commit"
+          echo "No changes to commit"
           exit 0
         fi
         git commit -m "update: $(date -u '+%Y-%m-%d') arXiv papers"
-        echo "变更已提交 / Changes committed"
-        
     - name: Pull latest changes and push
-      if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
-        # 设置Git配置以处理自动合并 / Set Git config for automatic merging
+        # 设置Git配置以处理自动合并
         git config pull.rebase true
         git config rebase.autoStash true
         
-        # 尝试推送，如果失败则拉取并重试 / Try to push, if failed then pull and retry
+        # 尝试推送，如果失败则拉取并重试
         for i in {1..3}; do
-          echo "推送尝试 $i / Push attempt $i"
+          echo "Push attempt $i"
           if git push origin main; then
-            echo "推送成功 / Push successful"
+            echo "Push successful"
             break
           else
-            echo "推送失败，拉取最新变更... / Push failed, pulling latest changes..."
+            echo "Push failed, pulling latest changes..."
             git pull origin main --no-edit || true
             if [ $i -eq 3 ]; then
-              echo "3次尝试后推送失败 / Failed to push after 3 attempts"
+              echo "Failed to push after 3 attempts"
               exit 1
             fi
           fi
