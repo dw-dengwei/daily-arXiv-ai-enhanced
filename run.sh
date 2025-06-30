@@ -121,7 +121,7 @@ if [ "$PARTIAL_MODE" = "false" ] && [ -f "../data/${today}_AI_enhanced_${LANGUAG
     
 elif [ -f "../data/${today}.jsonl" ]; then
     echo "📄 使用原始数据进行转换... / Using raw data for conversion..."
-    python convert_raw.py --data ../data/${today}.jsonl
+    python convert.py --data ../data/${today}.jsonl
     
     if [ $? -ne 0 ]; then
         echo "❌ 原始数据Markdown转换失败 / Raw data Markdown conversion failed"
