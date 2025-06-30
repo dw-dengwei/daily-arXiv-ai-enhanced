@@ -115,8 +115,8 @@ def check_scrapy_output():
     """
     today = datetime.now().strftime("%Y-%m-%d")
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    yesterday_file = f"../../data/{yesterday}.jsonl"
-    today_file = f"../../data/{today}.jsonl"
+    yesterday_file = f"../data/{yesterday}.jsonl"
+    today_file = f"../data/{today}.jsonl"
     
     # 如果今日文件不存在，说明可能爬取失败 / If today's file doesn't exist, crawling might have failed
     if not os.path.exists(today_file):
@@ -166,7 +166,7 @@ def main():
         if direct_status == "duplicate":
             # 删除重复文件 / Delete duplicate file
             today = datetime.now().strftime("%Y-%m-%d")
-            today_file = f"../../data/{today}.jsonl"
+            today_file = f"../data/{today}.jsonl"
             try:
                 os.remove(today_file)
                 print(f"已删除重复文件: {today_file} / Deleted duplicate file: {today_file}", file=sys.stderr)
