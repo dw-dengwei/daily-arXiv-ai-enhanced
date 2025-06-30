@@ -154,9 +154,8 @@ def main():
     
     退出码含义 / Exit code meanings:
     0: 发现新内容，继续处理 / New content found, continue processing
-    2: 今日无新论文 / No new papers today
-    3: 内容重复 / Content duplicated
-    1: 检查失败或未知状态 / Check failed or unknown status
+    1: 今日无新论文 / No new papers today
+    2: 内容重复 / Content duplicated
     """
     
     print("正在检查Scrapy去重结果... / Checking Scrapy deduplication results...", file=sys.stderr)
@@ -173,22 +172,22 @@ def main():
                 print(f"已删除重复文件: {today_file} / Deleted duplicate file: {today_file}", file=sys.stderr)
             except Exception as e:
                 print(f"删除重复文件失败 / Failed to delete duplicate file: {e}", file=sys.stderr)
-            sys.exit(3)
+            sys.exit(2)
         elif direct_status == "new_content":
             sys.exit(0)
         elif direct_status == "no_new":
-            sys.exit(2)
+            sys.exit(1)
         elif direct_status == "no_data":
-            sys.exit(2)
+            sys.exit(1)
     
     # 方案2: 检查日志文件（备用）/ Method 2: Check log files (backup)
     log_status = check_scrapy_logs()
     if log_status == "duplicate":
-        sys.exit(3)
+        sys.exit(2)
     elif log_status == "new_content":
         sys.exit(0)
     elif log_status == "no_new":
-        sys.exit(2)
+        sys.exit(1)
     
     # 默认：如果无法确定状态，继续处理 / Default: if status cannot be determined, continue processing
     print("无法确定去重状态，继续处理 / Cannot determine dedup status, continue processing", file=sys.stderr)
