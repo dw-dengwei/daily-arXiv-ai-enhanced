@@ -52,36 +52,43 @@ jobs:
       id: dedup_check
       run: |
         source .venv/bin/activate
-        echo "检查Scrapy内置去重结果... / Checking Scrapy built-in dedup results..."
+        echo "执行智能去重检查... / Performing intelligent deduplication check..."
         
         cd daily_arxiv
-        # 执行去重状态检查脚本 / Execute dedup status check script
+        # 执行智能去重检查脚本 / Execute intelligent deduplication check script
+        set +e  # 暂时允许命令失败 / Temporarily allow command failure
         python daily_arxiv/check_stats.py
         
         # 获取退出码 / Get exit code
         dedup_exit_code=$?
+        set -e  # 恢复严格模式 / Restore strict mode
+        
+        echo "去重检查退出码: $dedup_exit_code / Dedup check exit code: $dedup_exit_code"
         echo "dedup_exit_code=$dedup_exit_code" >> $GITHUB_OUTPUT
         
-                 case $dedup_exit_code in
-             0)
-                 echo "发现新内容，将继续处理... / New content found, will continue processing..."
-                 echo "has_new_content=true" >> $GITHUB_OUTPUT
-                 ;;
-             1)
-                 echo "今日无新论文，工作流结束 / No new papers today, workflow ends"
-                 echo "has_new_content=false" >> $GITHUB_OUTPUT
-                 echo "skip_reason=no_new_papers" >> $GITHUB_OUTPUT
-                 ;;
-             2)
-                 echo "内容重复，工作流结束 / Content duplicated, workflow ends"
-                 echo "has_new_content=false" >> $GITHUB_OUTPUT
-                 echo "skip_reason=duplicate_content" >> $GITHUB_OUTPUT
-                 ;;
-             *)
-                 echo "去重检查状态未知，继续处理... / Dedup check status unknown, continuing processing..."
-                 echo "has_new_content=true" >> $GITHUB_OUTPUT
-                 ;;
-         esac
+        case $dedup_exit_code in
+            0)
+                echo "✅ 智能去重完成，发现新内容，继续工作流... / Smart deduplication completed, new content found, continue workflow..."
+                echo "has_new_content=true" >> $GITHUB_OUTPUT
+                ;;
+            1)
+                echo "⏹️ 智能去重完成，无新内容，停止工作流 / Smart deduplication completed, no new content, stop workflow"
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=no_new_content" >> $GITHUB_OUTPUT
+                ;;
+            2)
+                echo "❌ 去重处理出错，停止工作流 / Deduplication processing error, stop workflow"
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=processing_error" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+            *)
+                echo "❌ 未知退出码，停止工作流 / Unknown exit code, stop workflow"
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=unknown_error" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+        esac
         
     - name: AI Enhancement Processing
       if: steps.dedup_check.outputs.has_new_content == 'true'
@@ -113,7 +120,23 @@ jobs:
         echo "转换为Markdown格式... / Converting to Markdown format..."
         
         cd to_md
-        python convert.py --data ../data/${today}_AI_enhanced_${LANGUAGE}.jsonl
+        
+        # 首先尝试使用AI增强文件 / First try to use AI enhanced file
+        AI_FILE="../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+        RAW_FILE="../data/${today}.jsonl"
+        
+        if [ -f "$AI_FILE" ]; then
+            echo "使用AI增强文件进行转换... / Using AI enhanced file for conversion..."
+            python convert.py --data "$AI_FILE"
+        elif [ -f "$RAW_FILE" ]; then
+            echo "AI增强文件不存在，使用原始文件进行转换... / AI enhanced file not found, using raw file for conversion..."
+            python convert.py --data "$RAW_FILE"
+        else
+            echo "错误：未找到可转换的数据文件 / Error: No convertible data files found"
+            echo "AI文件: $AI_FILE"
+            echo "原始文件: $RAW_FILE"
+            exit 1
+        fi
         
         # 检查转换是否成功 / Check if conversion was successful
         if [ $? -ne 0 ]; then
@@ -132,14 +155,17 @@ jobs:
     - name: Summary
       run: |
         if [ "${{ steps.dedup_check.outputs.has_new_content }}" = "true" ]; then
-          echo "✅ 工作流完成：发现新内容并成功处理 / Workflow completed: New content found and processed successfully"
+          echo "✅ 工作流完成：智能去重发现新内容并成功处理 / Workflow completed: Smart deduplication found new content and processed successfully"
         else
           case "${{ steps.dedup_check.outputs.skip_reason }}" in
-            "no_new_papers")
-              echo "ℹ️ 工作流完成：今日无新论文 / Workflow completed: No new papers today"
+            "no_new_content")
+              echo "ℹ️ 工作流完成：智能去重后无新内容 / Workflow completed: No new content after smart deduplication"
               ;;
-            "duplicate_content")
-              echo "ℹ️ 工作流完成：检测到重复内容 / Workflow completed: Duplicate content detected"
+            "processing_error")
+              echo "⚠️ 工作流完成：去重处理出错 / Workflow completed: Deduplication processing error"
+              ;;
+            "unknown_error")
+              echo "⚠️ 工作流完成：未知错误 / Workflow completed: Unknown error"
               ;;
             *)
               echo "ℹ️ 工作流完成：未知原因跳过处理 / Workflow completed: Skipped for unknown reason"
