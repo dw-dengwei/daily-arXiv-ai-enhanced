@@ -66,24 +66,25 @@ if [ ! -f "../data/${today}.jsonl" ]; then
 fi
 
 # 第二步：检查去重 / Step 2: Check duplicates  
-echo "步骤2：检查去重... / Step 2: Checking duplicates..."
+echo "步骤2：执行去重检查... / Step 2: Performing intelligent deduplication check..."
 python daily_arxiv/check_stats.py
 dedup_exit_code=$?
 
 case $dedup_exit_code in
     0)
-        echo "发现新内容，继续处理... / New content found, continuing..."
+        echo "✅ 去重完成，发现新内容，继续处理... / Smart deduplication completed, new content found, continuing..."
         ;;
     1)
-        echo "今日无新论文 / No new papers today"
+        echo "⏹️ 去重完成，无新内容，停止处理 / Smart deduplication completed, no new content, stopping"
         exit 1
         ;;
     2)
-        echo "内容重复 / Content duplicated"
+        echo "❌ 去重处理出错，停止处理 / Deduplication processing error, stopping"
         exit 2
         ;;
     *)
-        echo "去重检查状态未知，继续处理... / Unknown dedup status, continuing..."
+        echo "❌ 未知退出码，停止处理... / Unknown exit code, stopping..."
+        exit 1
         ;;
 esac
 
@@ -119,19 +120,14 @@ if [ "$PARTIAL_MODE" = "false" ] && [ -f "../data/${today}_AI_enhanced_${LANGUAG
     fi
     echo "✅ AI增强版Markdown转换完成 / AI enhanced Markdown conversion completed"
     
-elif [ -f "../data/${today}.jsonl" ]; then
-    echo "📄 使用原始数据进行转换... / Using raw data for conversion..."
-    python convert.py --data ../data/${today}.jsonl
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ 原始数据Markdown转换失败 / Raw data Markdown conversion failed"
+else
+    if [ "$PARTIAL_MODE" = "true" ]; then
+        echo "⏭️  跳过Markdown转换（部分模式，需要AI增强数据）/ Skipping Markdown conversion (partial mode, requires AI enhanced data)"
+    else
+        echo "❌ 错误：未找到AI增强文件 / Error: AI enhanced file not found"
+        echo "AI文件: ../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
         exit 1
     fi
-    echo "✅ 原始数据Markdown转换完成 / Raw data Markdown conversion completed"
-    
-else
-    echo "❌ 错误：未找到可转换的数据文件 / Error: No convertible data files found"
-    exit 1
 fi
 
 cd ..
@@ -147,16 +143,16 @@ echo "=== 本地调试完成 / Local Debug Completed ==="
 if [ "$PARTIAL_MODE" = "false" ]; then
     echo "🎉 完整流程已完成 / Complete workflow finished:"
     echo "   ✅ 数据爬取 / Data crawling"
-    echo "   ✅ 去重检查 / Duplicate check"
+    echo "   ✅ 去重检查 / Smart duplicate check"
     echo "   ✅ AI增强处理 / AI enhancement"
     echo "   ✅ Markdown转换 / Markdown conversion"
     echo "   ✅ 文件列表更新 / File list update"
 else
     echo "🔄 部分流程已完成 / Partial workflow finished:"
     echo "   ✅ 数据爬取 / Data crawling"
-    echo "   ✅ 去重检查 / Duplicate check"
-    echo "   ✅ 原始数据Markdown转换 / Raw data Markdown conversion"
+    echo "   ✅ 去重检查 / Smart duplicate check"
+    echo "   ⏭️  跳过AI增强和Markdown转换 / Skipped AI enhancement and Markdown conversion"
     echo "   ✅ 文件列表更新 / File list update"
     echo ""
-    echo "💡 提示：设置OPENAI_API_KEY可启用AI增强功能 / Tip: Set OPENAI_API_KEY to enable AI enhancement"
+    echo "💡 提示：设置OPENAI_API_KEY可启用完整功能 / Tip: Set OPENAI_API_KEY to enable full functionality"
 fi

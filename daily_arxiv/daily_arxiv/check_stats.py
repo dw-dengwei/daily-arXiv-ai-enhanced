@@ -64,7 +64,7 @@ def save_papers_data(papers, file_path):
 
 def perform_deduplication():
     """
-    执行智能去重：删除重复论文条目，保留新内容
+    执行去重：删除重复论文条目，保留新内容
     Perform intelligent deduplication: remove duplicate papers, keep new content
     
     Returns:
@@ -195,7 +195,7 @@ def main():
     2: 处理错误 / Processing error
     """
     
-    print("正在执行智能去重检查... / Performing intelligent deduplication check...", file=sys.stderr)
+    print("正在执行去重检查... / Performing intelligent deduplication check...", file=sys.stderr)
     
     # 方案1: 直接执行去重处理（主要方法）/ Method 1: Direct deduplication processing (primary method)
     dedup_status = perform_deduplication()
