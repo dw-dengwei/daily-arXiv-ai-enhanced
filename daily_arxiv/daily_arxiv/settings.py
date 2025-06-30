@@ -62,8 +62,13 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+# 配置数据处理管道 / Configure item processing pipelines
+# 数字越小优先级越高 / Lower numbers have higher priority
 ITEM_PIPELINES = {
+    # 主要数据保存管道 / Main data saving pipeline
     "daily_arxiv.pipelines.DailyArxivPipeline": 300,
+    # 去重检查管道 - 在数据保存后执行去重检查 / Dedup check pipeline - performs dedup check after data saving
+    "daily_arxiv.pipelines.DedupCheckPipeline": 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

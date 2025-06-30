@@ -21,6 +21,7 @@ jobs:
         curl -LsSf https://astral.sh/uv/install.sh | sh
         uv sync
     - name: Run script
+      id: run_script
       run: |
         source .venv/bin/activate
         export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
@@ -29,6 +30,23 @@ jobs:
         export CATEGORIES="${{ vars.CATEGORIES }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
         bash run.sh
+        echo "script_exit_code=$?" >> $GITHUB_OUTPUT
+        
+    - name: Check if content was processed
+      run: |
+        # Scrapy集成方案的退出码含义 / Exit code meanings for Scrapy integrated solution:
+        # 0: 发现新内容并成功处理 / New content found and processed successfully
+        # 2: 今日无新论文 / No new papers today  
+        # 3: 内容重复 / Content duplicated
+        # 1: 处理失败 / Processing failed
+        if [ "${{ steps.run_script.outputs.script_exit_code }}" = "0" ]; then
+          echo "发现新内容并成功处理，继续提交 / New content processed successfully, proceeding with commit"
+        else
+          echo "无新内容、重复内容或处理失败，跳过提交 / No new content, duplicate content, or processing failed - skipping commit"
+          echo "退出码 / Exit code: ${{ steps.run_script.outputs.script_exit_code }}"
+          exit 0
+        fi
+        
     - name: commit
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
@@ -39,7 +57,7 @@ jobs:
           echo "No changes to commit"
           exit 0
         fi
-        git commit -m "update"
+        git commit -m "update: $(date -u '+%Y-%m-%d') arXiv papers"
     - name: Pull latest changes and push
       run: |
         # 设置Git配置以处理自动合并
