@@ -44,8 +44,8 @@ jobs:
         export CATEGORIES="${{ vars.CATEGORIES }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
         
-        # 使用Scrapy爬取，内置去重检查管道会自动执行
-        # Use Scrapy to crawl, built-in dedup check pipeline will execute automatically
+        # 使用Scrapy爬取
+        # Use Scrapy to crawl
         scrapy crawl arxiv -o ../data/${today}.jsonl
         
         # 检查爬取是否成功 / Check if crawling was successful
@@ -77,16 +77,13 @@ jobs:
         
         case $dedup_exit_code in
             0)
-                echo "✅ 去重完成，发现新内容，继续工作流... / Smart deduplication completed, new content found, continue workflow..."
                 echo "has_new_content=true" >> $GITHUB_OUTPUT
                 ;;
             1)
-                echo "⏹️ 去重完成，无新内容，停止工作流 / Smart deduplication completed, no new content, stop workflow"
                 echo "has_new_content=false" >> $GITHUB_OUTPUT
                 echo "skip_reason=no_new_content" >> $GITHUB_OUTPUT
                 ;;
             2)
-                echo "❌ 去重处理出错，停止工作流 / Deduplication processing error, stop workflow"
                 echo "has_new_content=false" >> $GITHUB_OUTPUT
                 echo "skip_reason=processing_error" >> $GITHUB_OUTPUT
                 exit 1

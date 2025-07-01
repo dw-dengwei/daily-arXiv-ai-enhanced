@@ -11,8 +11,6 @@
 import json
 import sys
 import os
-import re
-import glob
 from datetime import datetime, timedelta
 
 def load_papers_data(file_path):
@@ -132,58 +130,6 @@ def perform_deduplication():
         print(f"去重处理失败 / Deduplication processing failed: {e}", file=sys.stderr)
         return "error"
 
-def get_latest_log_file():
-    """
-    获取最新的爬取日志文件
-    Get the latest crawling log file
-    
-    Returns:
-        str: 最新日志文件路径 / Latest log file path
-    """
-    # 查找最新的日志文件 / Search for the latest log file
-    log_pattern = "logs/daily_arxiv.log*"
-    log_files = glob.glob(log_pattern)
-    
-    if not log_files:
-        return None
-    
-    # 返回最新修改的日志文件 / Return the most recently modified log file
-    return max(log_files, key=os.path.getmtime)
-
-def check_scrapy_logs():
-    """
-    通过检查最新的爬取日志获取去重状态（备用方法）
-    Get deduplication status by checking the latest crawling logs (backup method)
-    
-    Returns:
-        str: 去重状态 / Deduplication status
-    """
-    log_file = get_latest_log_file()
-    
-    if not log_file or not os.path.exists(log_file):
-        print("未找到Scrapy日志文件 / Scrapy log file not found", file=sys.stderr)
-        return "unknown"
-
-    try:
-        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-            
-        # 检查去重相关的日志信息 / Check deduplication-related log information
-        if "所有论文均为重复内容" in content:
-            print("从日志检测到：无新内容 / Detected from logs: no new content", file=sys.stderr)
-            return "no_new_content"
-        elif re.search(r"去重后剩余论文数: \d+", content):
-            print("从日志检测到：有新内容 / Detected from logs: has new content", file=sys.stderr)
-            return "has_new_content"
-        elif "未发现重复论文" in content:
-            print("从日志检测到：有新内容 / Detected from logs: has new content", file=sys.stderr)
-            return "has_new_content"
-            
-    except Exception as e:
-        print(f"读取日志文件失败 / Failed to read log file: {e}", file=sys.stderr)
-    
-    return "unknown"
-
 def main():
     """
     检查去重状态并返回相应的退出码
@@ -197,7 +143,7 @@ def main():
     
     print("正在执行去重检查... / Performing intelligent deduplication check...", file=sys.stderr)
     
-    # 方案1: 直接执行去重处理（主要方法）/ Method 1: Direct deduplication processing (primary method)
+    # 执行去重处理 / Perform deduplication processing
     dedup_status = perform_deduplication()
     
     if dedup_status == "has_new_content":
@@ -212,17 +158,10 @@ def main():
     elif dedup_status == "error":
         print("❌ 去重处理出错，停止工作流 / Deduplication processing error, stop workflow", file=sys.stderr)
         sys.exit(2)
-    
-    # 方案2: 检查日志文件（备用）/ Method 2: Check log files (backup)
-    log_status = check_scrapy_logs()
-    if log_status == "has_new_content":
-        sys.exit(0)
-    elif log_status == "no_new_content":
-        sys.exit(1)
-    
-    # 默认：如果无法确定状态，报错退出 / Default: if status cannot be determined, exit with error
-    print("❌ 无法确定去重状态，停止工作流 / Cannot determine dedup status, stop workflow", file=sys.stderr)
-    sys.exit(2)
+    else:
+        # 意外情况：未知状态 / Unexpected case: unknown status
+        print("❌ 未知去重状态，停止工作流 / Unknown deduplication status, stop workflow", file=sys.stderr)
+        sys.exit(2)
 
 if __name__ == "__main__":
     main() 

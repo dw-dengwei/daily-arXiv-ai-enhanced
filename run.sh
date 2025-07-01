@@ -82,14 +82,14 @@ dedup_exit_code=$?
 
 case $dedup_exit_code in
     0)
-        echo "✅ 去重完成，发现新内容，继续处理... / Smart deduplication completed, new content found, continuing..."
+        # check_stats.py已输出成功信息，继续处理 / check_stats.py already output success info, continue processing
         ;;
     1)
-        echo "⏹️ 去重完成，无新内容，停止处理 / Smart deduplication completed, no new content, stopping"
+        # check_stats.py已输出无新内容信息，停止处理 / check_stats.py already output no new content info, stop processing
         exit 1
         ;;
     2)
-        echo "❌ 去重处理出错，停止处理 / Deduplication processing error, stopping"
+        # check_stats.py已输出错误信息，停止处理 / check_stats.py already output error info, stop processing
         exit 2
         ;;
     *)

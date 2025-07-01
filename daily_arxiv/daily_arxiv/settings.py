@@ -67,7 +67,6 @@ ROBOTSTXT_OBEY = True
 ITEM_PIPELINES = {
     # 主要数据保存管道 / Main data saving pipeline
     "daily_arxiv.pipelines.DailyArxivPipeline": 300,
-    # 去重检查已迁移到外部脚本 check_stats.py / Dedup check migrated to external script check_stats.py
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
