@@ -20,43 +20,195 @@ jobs:
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         uv sync
-    - name: Run script
+        
+    - name: Crawl arXiv papers
+      id: crawl_step
       run: |
         source .venv/bin/activate
+        today=$(date -u "+%Y-%m-%d")
+        echo "开始爬取 $today 的arXiv论文... / Starting to crawl $today arXiv papers..."
+        
+        # 检查今日文件是否已存在，如存在则删除 / Check if today's file exists, delete if found
+        if [ -f "data/${today}.jsonl" ]; then
+            echo "🗑️ 发现今日文件已存在，正在删除重新生成... / Found existing today's file, deleting for fresh start..."
+            rm "data/${today}.jsonl"
+            echo "✅ 已删除现有文件：data/${today}.jsonl / Deleted existing file: data/${today}.jsonl"
+        else
+            echo "📝 今日文件不存在，准备新建... / Today's file doesn't exist, ready to create new one..."
+        fi
+        
+        cd daily_arxiv
         export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
         export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
         export LANGUAGE="${{ vars.LANGUAGE }}"
         export CATEGORIES="${{ vars.CATEGORIES }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
-        bash run.sh
-    - name: commit
+        
+        # 使用Scrapy爬取
+        # Use Scrapy to crawl
+        scrapy crawl arxiv -o ../data/${today}.jsonl
+        
+        # 检查爬取是否成功 / Check if crawling was successful
+        if [ ! -f "../data/${today}.jsonl" ]; then
+            echo "爬取失败，未生成数据文件 / Crawling failed, no data file generated"
+            exit 1
+        fi
+        
+        echo "crawl_date=$today" >> $GITHUB_OUTPUT
+        echo "爬取完成 / Crawling completed"
+        
+    - name: Check for duplicates
+      id: dedup_check
+      run: |
+        source .venv/bin/activate
+        echo "执行去重检查... / Performing intelligent deduplication check..."
+        
+        cd daily_arxiv
+        # 执行去重检查脚本 / Execute intelligent deduplication check script
+        set +e  # 暂时允许命令失败 / Temporarily allow command failure
+        python daily_arxiv/check_stats.py
+        
+        # 获取退出码 / Get exit code
+        dedup_exit_code=$?
+        set -e  # 恢复严格模式 / Restore strict mode
+        
+        echo "去重检查退出码: $dedup_exit_code / Dedup check exit code: $dedup_exit_code"
+        echo "dedup_exit_code=$dedup_exit_code" >> $GITHUB_OUTPUT
+        
+        case $dedup_exit_code in
+            0)
+                echo "has_new_content=true" >> $GITHUB_OUTPUT
+                ;;
+            1)
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=no_new_content" >> $GITHUB_OUTPUT
+                ;;
+            2)
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=processing_error" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+            *)
+                echo "❌ 未知退出码，停止工作流 / Unknown exit code, stop workflow"
+                echo "has_new_content=false" >> $GITHUB_OUTPUT
+                echo "skip_reason=unknown_error" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+        esac
+        
+    - name: AI Enhancement Processing
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+        echo "开始AI增强处理... / Starting AI enhancement processing..."
+        
+        cd ai
+        export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        export MODEL_NAME="${{ vars.MODEL_NAME }}"
+        
+        python enhance.py --data ../data/${today}.jsonl
+        
+        # 检查AI处理是否成功 / Check if AI processing was successful
+        if [ $? -ne 0 ]; then
+            echo "AI处理失败 / AI processing failed"
+            exit 1
+        fi
+        echo "AI增强处理完成 / AI enhancement processing completed"
+        
+    - name: Convert to Markdown
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+        echo "转换为Markdown格式... / Converting to Markdown format..."
+        
+        # 设置环境变量 / Set environment variables
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        
+        cd to_md
+        
+        # 使用AI增强文件进行转换 / Use AI enhanced file for conversion
+        AI_FILE="../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+        
+        if [ -f "$AI_FILE" ]; then
+            echo "使用AI增强文件进行转换... / Using AI enhanced file for conversion..."
+            python convert.py --data "$AI_FILE"
+        else
+            echo "错误：未找到AI增强文件 / Error: AI enhanced file not found"
+            echo "AI文件: $AI_FILE"
+            exit 1
+        fi
+        
+        # 检查转换是否成功 / Check if conversion was successful
+        if [ $? -ne 0 ]; then
+            echo "Markdown转换失败 / Markdown conversion failed"
+            exit 1
+        fi
+        echo "Markdown转换完成 / Markdown conversion completed"
+        
+    - name: Update file list
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      run: |
+        echo "更新文件列表... / Updating file list..."
+        ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+        echo "文件列表更新完成 / File list updated"
+        
+    - name: Summary
+      run: |
+        if [ "${{ steps.dedup_check.outputs.has_new_content }}" = "true" ]; then
+          echo "✅ 工作流完成：去重发现新内容并成功处理 / Workflow completed: Smart deduplication found new content and processed successfully"
+        else
+          case "${{ steps.dedup_check.outputs.skip_reason }}" in
+            "no_new_content")
+              echo "ℹ️ 工作流完成：去重后无新内容 / Workflow completed: No new content after smart deduplication"
+              ;;
+            "processing_error")
+              echo "⚠️ 工作流完成：去重处理出错 / Workflow completed: Deduplication processing error"
+              ;;
+            "unknown_error")
+              echo "⚠️ 工作流完成：未知错误 / Workflow completed: Unknown error"
+              ;;
+            *)
+              echo "ℹ️ 工作流完成：未知原因跳过处理 / Workflow completed: Skipped for unknown reason"
+              ;;
+          esac
+        fi
+        
+    - name: Commit changes
+      if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
         git add .
-        # 检查是否有变更需要提交
+        # 检查是否有变更需要提交 / Check if there are changes to commit
         if git diff --staged --quiet; then
-          echo "No changes to commit"
+          echo "没有变更需要提交 / No changes to commit"
           exit 0
         fi
-        git commit -m "update"
+        git commit -m "update: $(date -u '+%Y-%m-%d') arXiv papers"
+        echo "变更已提交 / Changes committed"
+        
     - name: Pull latest changes and push
+      if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
-        # 设置Git配置以处理自动合并
+        # 设置Git配置以处理自动合并 / Set Git config for automatic merging
         git config pull.rebase true
         git config rebase.autoStash true
         
-        # 尝试推送，如果失败则拉取并重试
+        # 尝试推送，如果失败则拉取并重试 / Try to push, if failed then pull and retry
         for i in {1..3}; do
-          echo "Push attempt $i"
+          echo "推送尝试 $i / Push attempt $i"
           if git push origin main; then
-            echo "Push successful"
+            echo "推送成功 / Push successful"
             break
           else
-            echo "Push failed, pulling latest changes..."
+            echo "推送失败，拉取最新变更... / Push failed, pulling latest changes..."
             git pull origin main --no-edit || true
             if [ $i -eq 3 ]; then
-              echo "Failed to push after 3 attempts"
+              echo "3次尝试后推送失败 / Failed to push after 3 attempts"
               exit 1
             fi
           fi
