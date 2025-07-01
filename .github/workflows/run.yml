@@ -28,6 +28,15 @@ jobs:
         today=$(date -u "+%Y-%m-%d")
         echo "开始爬取 $today 的arXiv论文... / Starting to crawl $today arXiv papers..."
         
+        # 检查今日文件是否已存在，如存在则删除 / Check if today's file exists, delete if found
+        if [ -f "data/${today}.jsonl" ]; then
+            echo "🗑️ 发现今日文件已存在，正在删除重新生成... / Found existing today's file, deleting for fresh start..."
+            rm "data/${today}.jsonl"
+            echo "✅ 已删除现有文件：data/${today}.jsonl / Deleted existing file: data/${today}.jsonl"
+        else
+            echo "📝 今日文件不存在，准备新建... / Today's file doesn't exist, ready to create new one..."
+        fi
+        
         cd daily_arxiv
         export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
         export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
