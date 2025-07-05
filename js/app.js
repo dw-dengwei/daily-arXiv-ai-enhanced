@@ -10,6 +10,8 @@ let activeKeywords = []; // 存储激活的关键词
 let userKeywords = []; // 存储用户的关键词
 let activeAuthors = []; // 存储激活的作者
 let userAuthors = []; // 存储用户的作者
+let currentPaperIndex = 0; // 当前查看的论文索引
+let currentFilteredPapers = []; // 当前过滤后的论文列表
 
 function loadCategoryPreference() {
   // 这里的值是在构建时从环境变量注入的
@@ -309,6 +311,57 @@ function initEventListeners() {
   document.querySelector('.paper-modal').addEventListener('click', (event) => {
     if (event.target === document.querySelector('.paper-modal')) {
       closeModal();
+    }
+  });
+  
+  // 添加键盘事件监听 - Esc 键关闭模态框，左右箭头键切换论文，R 键显示随机论文
+  document.addEventListener('keydown', (event) => {
+    // 检查是否有输入框或文本区域处于焦点状态
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' || 
+      activeElement.tagName === 'TEXTAREA' || 
+      activeElement.isContentEditable
+    );
+    
+    if (event.key === 'Escape') {
+      const paperModal = document.getElementById('paperModal');
+      const datePickerModal = document.getElementById('datePickerModal');
+      
+      // 关闭论文模态框
+      if (paperModal.classList.contains('active')) {
+        closeModal();
+      }
+      // 关闭日期选择器模态框
+      else if (datePickerModal.classList.contains('active')) {
+        toggleDatePicker();
+      }
+    }
+    // 左右箭头键导航论文（仅在论文模态框打开时）
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const paperModal = document.getElementById('paperModal');
+      if (paperModal.classList.contains('active')) {
+        event.preventDefault(); // 防止页面滚动
+        
+        if (event.key === 'ArrowLeft') {
+          navigateToPreviousPaper();
+        } else if (event.key === 'ArrowRight') {
+          navigateToNextPaper();
+        }
+      }
+    }
+    // R 键显示随机论文（在没有输入框焦点且日期选择器未打开时）
+    else if (event.key === 'r' || event.key === 'R') {
+      const paperModal = document.getElementById('paperModal');
+      const datePickerModal = document.getElementById('datePickerModal');
+      
+      // 只有在没有输入框焦点且日期选择器没有打开时才触发
+      // 现在允许在论文模态框打开时也能使用R键切换到随机论文
+      if (!isInputFocused && !datePickerModal.classList.contains('active')) {
+        event.preventDefault(); // 防止页面刷新
+        event.stopPropagation(); // 阻止事件冒泡
+        showRandomPaper();
+      }
     }
   });
   
@@ -733,6 +786,9 @@ function renderPapers() {
     });
   }
   
+  // 存储当前过滤后的论文列表，用于箭头键导航
+  currentFilteredPapers = [...filteredPapers];
+  
   if (filteredPapers.length === 0) {
     container.innerHTML = `
       <div class="loading-container">
@@ -792,14 +848,15 @@ function renderPapers() {
     `;
     
     paperCard.addEventListener('click', () => {
-      showPaperDetails(paper);
+      currentPaperIndex = index; // 记录当前点击的论文索引
+      showPaperDetails(paper, index + 1);
     });
     
     container.appendChild(paperCard);
   });
 }
 
-function showPaperDetails(paper) {
+function showPaperDetails(paper, paperIndex) {
   const modal = document.getElementById('paperModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
@@ -810,7 +867,8 @@ function showPaperDetails(paper) {
     ? highlightMatches(paper.title, activeKeywords, 'keyword-highlight') 
     : paper.title;
   
-  modalTitle.innerHTML = highlightedTitle;
+  // 在标题前添加索引号
+  modalTitle.innerHTML = paperIndex ? `<span class="paper-index-badge">${paperIndex}</span> ${highlightedTitle}` : highlightedTitle;
   
   const abstractText = paper.details || '';
   
@@ -916,6 +974,12 @@ function showPaperDetails(paper) {
   
   paperLink.href = paper.url || `https://arxiv.org/abs/${paper.id}` || "https://arxiv.org/";
   
+  // 更新论文位置信息
+  const paperPosition = document.getElementById('paperPosition');
+  if (paperPosition && currentFilteredPapers.length > 0) {
+    paperPosition.textContent = `${currentPaperIndex + 1} / ${currentFilteredPapers.length}`;
+  }
+  
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -923,6 +987,72 @@ function showPaperDetails(paper) {
 function closeModal() {
   document.getElementById('paperModal').classList.remove('active');
   document.body.style.overflow = '';
+}
+
+// 导航到上一篇论文
+function navigateToPreviousPaper() {
+  if (currentFilteredPapers.length === 0) return;
+  
+  currentPaperIndex = currentPaperIndex > 0 ? currentPaperIndex - 1 : currentFilteredPapers.length - 1;
+  const paper = currentFilteredPapers[currentPaperIndex];
+  showPaperDetails(paper, currentPaperIndex + 1);
+}
+
+// 导航到下一篇论文
+function navigateToNextPaper() {
+  if (currentFilteredPapers.length === 0) return;
+  
+  currentPaperIndex = currentPaperIndex < currentFilteredPapers.length - 1 ? currentPaperIndex + 1 : 0;
+  const paper = currentFilteredPapers[currentPaperIndex];
+  showPaperDetails(paper, currentPaperIndex + 1);
+}
+
+// 显示随机论文
+function showRandomPaper() {
+  // 检查是否有可用的论文
+  if (currentFilteredPapers.length === 0) {
+    console.log('No papers available to show random paper');
+    return;
+  }
+  
+  // 生成随机索引
+  const randomIndex = Math.floor(Math.random() * currentFilteredPapers.length);
+  const randomPaper = currentFilteredPapers[randomIndex];
+  
+  // 更新当前论文索引
+  currentPaperIndex = randomIndex;
+  
+  // 显示随机论文
+  showPaperDetails(randomPaper, currentPaperIndex + 1);
+  
+  // 显示随机论文指示器
+  showRandomPaperIndicator();
+  
+  console.log(`Showing random paper: ${randomIndex + 1}/${currentFilteredPapers.length}`);
+}
+
+// 显示随机论文指示器
+function showRandomPaperIndicator() {
+  // 移除已存在的指示器
+  const existingIndicator = document.querySelector('.random-paper-indicator');
+  if (existingIndicator) {
+    existingIndicator.remove();
+  }
+  
+  // 创建新的指示器
+  const indicator = document.createElement('div');
+  indicator.className = 'random-paper-indicator';
+  indicator.textContent = 'Random Paper';
+  
+  // 添加到页面
+  document.body.appendChild(indicator);
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (indicator && indicator.parentNode) {
+      indicator.remove();
+    }
+  }, 3000);
 }
 
 function toggleDatePicker() {

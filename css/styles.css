@@ -697,6 +697,7 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .paper-modal-header h2 {
@@ -725,7 +726,27 @@ main {
   padding: 16px 20px;
   border-top: 1px solid var(--border-color);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.paper-navigation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.navigation-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.paper-position {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 /* 日期选择器样式 */
@@ -1908,4 +1929,142 @@ footer {
     padding: 0 1px;
     border-radius: 2px;
   }
-} 
+}
+
+/* Paper index badge for modal titles */
+.paper-index-badge {
+  font-weight: 600;
+  color: white;
+  background: var(--gradient-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  z-index: 5;
+}
+
+/* Random paper indicator */
+.random-paper-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--accent-color);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeInOut 3s ease-in-out;
+  box-shadow: var(--shadow-md);
+}
+
+.random-paper-indicator::before {
+  content: "🎲";
+  font-size: 14px;
+}
+
+@keyframes fadeInOut {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-10px) scale(0.9);
+  }
+  20% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1);
+  }
+  80% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1);
+  }
+  100% { 
+    opacity: 0; 
+    transform: translateY(-10px) scale(0.9);
+  }
+}
+
+/* Keyboard hint for random paper */
+.keyboard-hint {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1001;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.keyboard-hint:hover {
+  opacity: 1;
+}
+
+.keyboard-hint .key {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin: 0 2px;
+  font-weight: 600;
+}
+
+/* Enhanced modal footer for navigation hints */
+.modal-navigation-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  display: flex;
+  gap: 12px;
+}
+
+.modal-navigation-hint .hint-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.modal-navigation-hint .key-indicator {
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--primary-color);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .random-paper-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  
+  .keyboard-hint {
+    bottom: 10px;
+    right: 10px;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  
+  .modal-navigation-hint {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

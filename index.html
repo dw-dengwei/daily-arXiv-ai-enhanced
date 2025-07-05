@@ -151,6 +151,11 @@
             </div>
         </main>
 
+        <!-- Keyboard hint for random paper -->
+        <div class="keyboard-hint" id="keyboardHint">
+            Press <span class="key">R</span> for random paper
+        </div>
+
         <div class="paper-modal" id="paperModal">
             <div class="paper-modal-content">
                 <div class="paper-modal-header">
@@ -164,6 +169,10 @@
                 <div class="paper-modal-body" id="modalBody">
                 </div>
                 <div class="paper-modal-footer">
+                    <div class="paper-navigation">
+                        <span class="navigation-hint">← → to navigate • R for random</span>
+                        <span id="paperPosition" class="paper-position">-</span>
+                    </div>
                     <a id="paperLink" href="#" target="_blank" class="button primary">Open in arXiv</a>
                 </div>
             </div>
