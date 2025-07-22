@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 from queue import Queue
 from threading import Lock
+import time # 导入 time 模块
+
 
 import dotenv
 import argparse
@@ -39,6 +41,9 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
             "content": item['summary']
         })
         item['AI'] = response.model_dump()
+        
+        # !!! 在这里添加延迟 !!!
+        time.sleep(5) 
     except langchain_core.exceptions.OutputParserException as e:
         # 尝试从错误信息中提取 JSON 字符串并修复
         error_msg = str(e)
@@ -51,6 +56,9 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
                 # 尝试解析修复后的 JSON
                 fixed_data = json.loads(json_str)
                 item['AI'] = fixed_data
+                
+                # !!! 在这里添加延迟 !!!
+                time.sleep(5) 
                 return item
             except Exception as json_e:
                 print(f"Failed to fix JSON for {item['id']}: {json_e} {json_str}", file=sys.stderr)
@@ -63,6 +71,8 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
             "result": "Error",
             "conclusion": "Error"
         }
+        # !!! 即使是错误，也添加延迟，以保护 API !!!
+        time.sleep(5)
     return item
 
 def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int) -> List[Dict]:
