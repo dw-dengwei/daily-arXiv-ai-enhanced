@@ -23,6 +23,15 @@ from structure import Structure
 
 if os.path.exists('.env'):
     dotenv.load_dotenv()
+# 1. 读取延迟时间的环境变量，并提供默认值
+# 默认延迟 5 秒，如果未设置 API_DELAY_SECONDS 环境变量，则使用此默认值
+API_DELAY_SECONDS = int(os.environ.get("API_DELAY_SECONDS", 5)) 
+
+# 确保延迟时间是正整数，如果用户输入了非法的，使用默认值
+if not isinstance(API_DELAY_SECONDS, int) or API_DELAY_SECONDS < 0:
+    print(f"Warning: Invalid API_DELAY_SECONDS value '{API_DELAY_SECONDS}'. Using default of 5 seconds.", file=sys.stderr)
+    API_DELAY_SECONDS = 5
+
 template = open("template.txt", "r").read()
 system = open("system.txt", "r").read()
 
@@ -31,6 +40,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=str, required=True, help="jsonline data file")
     parser.add_argument("--max_workers", type=int, default=1, help="Maximum number of parallel workers")
+    # 可以选择性地在这里也添加一个命令行参数来覆盖环境变量，如果需要的话
+    # parser.add_argument("--delay", type=int, default=API_DELAY_SECONDS, help="Delay in seconds between API calls")
+    
     return parser.parse_args()
 
 def process_single_item(chain, item: Dict, language: str) -> Dict:
@@ -43,7 +55,7 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
         item['AI'] = response.model_dump()
         
         # !!! 在这里添加延迟 !!!
-        time.sleep(5) 
+        time.sleep(API_DELAY_SECONDS) 
     except langchain_core.exceptions.OutputParserException as e:
         # 尝试从错误信息中提取 JSON 字符串并修复
         error_msg = str(e)
@@ -58,7 +70,7 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
                 item['AI'] = fixed_data
                 
                 # !!! 在这里添加延迟 !!!
-                time.sleep(5) 
+                time.sleep(API_DELAY_SECONDS) 
                 return item
             except Exception as json_e:
                 print(f"Failed to fix JSON for {item['id']}: {json_e} {json_str}", file=sys.stderr)
@@ -72,7 +84,32 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
             "conclusion": "Error"
         }
         # !!! 即使是错误，也添加延迟，以保护 API !!!
-        time.sleep(5)
+        time.sleep(API_DELAY_SECONDS)
+    except Exception as e: # 捕获其他可能的异常，比如 API 请求本身的错误
+        print(f"An unexpected error occurred for item {item.get('id', 'unknown')}: {e}", file=sys.stderr)
+        item['AI'] = {
+            "tldr": "Unexpected Error",
+            "motivation": str(e),
+            "method": "N/A",
+            "result": "N/A",
+            "conclusion": "N/A"
+        }
+        # 即使是其他错误，也添加延迟
+        time.sleep(API_DELAY_SECONDS) # 使用变量
+
+    # !!! 在所有成功的处理（包括没有异常）之后，也添加延迟 !!!
+    # 确保每次 invoke() 之后都有延迟。
+    # 如果是在 except 块中已经 sleep 了，这里就不会再 sleep 了（因为代码流从那里跳过）
+    # 但如果 try 块成功执行，需要确保这里也 sleep。
+    # 所以，最稳妥的方式是把 sleep 放在最后，或者在每个分支都加。
+    # 为了简洁且确保生效，我们把 sleep 放在 try 块成功执行后，以及所有 except 块中。
+    # 让我们把 sleep 统一放在最后，确保不论成功还是出错，都会有延迟。
+    # （但这样会导致即使抛出异常，如果 except 块没有 sleep，也会漏掉）
+    # 最好的方法是在每个可能的 exit point 都加 sleep.
+    # 既然我们已经在每个 except 块中加了，这里只为 try 块成功时添加。
+    else: # else 块与 try 对应，在 try 块没有异常时执行
+        time.sleep(API_DELAY_SECONDS) # 使用变量
+
     return item
 
 def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int) -> List[Dict]:
