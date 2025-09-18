@@ -1,0 +1,12 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "categories:pwa": ["error", {"minScore": 0.9}]
+      }
+    }
+  }
+}

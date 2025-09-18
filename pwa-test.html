@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PWA测试页面 - Daily arXiv AI Enhanced">
+    <meta name="theme-color" content="#2196f3">
+    <title>PWA测试 - Daily arXiv AI Enhanced</title>
+    <link rel="icon" type="image/png" href="assets/logo2-removebg-preview.png">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196f3, #21cbf3);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .test-card h2 {
+            color: #2196f3;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .test-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-pass {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-fail {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-unknown {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .test-button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin: 0.25rem;
+        }
+
+        .test-button:hover {
+            background: #1976d2;
+            transform: translateY(-1px);
+        }
+
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .test-button.secondary {
+            background: #6c757d;
+        }
+
+        .test-button.success {
+            background: #28a745;
+        }
+
+        .test-button.danger {
+            background: #dc3545;
+        }
+
+        .test-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 1rem;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #2196f3;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            color: #666;
+            word-break: break-all;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #2196f3;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .test-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-button">
+            ← 返回主页
+        </a>
+
+        <div class="header">
+            <h1>🧪 PWA 功能测试</h1>
+            <p>检测和验证Progressive Web App的各项功能</p>
+        </div>
+
+        <div class="test-grid">
+            <!-- 基础支持测试 -->
+            <div class="test-card">
+                <h2>🔧 基础API支持</h2>
+                <div class="test-item">
+                    <span class="test-label">Service Worker</span>
+                    <span class="test-status" id="sw-support">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">Cache API</span>
+                    <span class="test-status" id="cache-support">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">Fetch API</span>
+                    <span class="test-status" id="fetch-support">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">Push API</span>
+                    <span class="test-status" id="push-support">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">Notification API</span>
+                    <span class="test-status" id="notification-support">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">IndexedDB</span>
+                    <span class="test-status" id="idb-support">检测中...</span>
+                </div>
+            </div>
+
+            <!-- PWA状态测试 -->
+            <div class="test-card">
+                <h2>📱 PWA状态</h2>
+                <div class="test-item">
+                    <span class="test-label">安装提示可用</span>
+                    <span class="test-status" id="install-prompt">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">已安装状态</span>
+                    <span class="test-status" id="installed-status">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">显示模式</span>
+                    <span class="test-status" id="display-mode">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">Service Worker状态</span>
+                    <span class="test-status" id="sw-status">检测中...</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="test-button" id="install-test-btn">触发安装提示</button>
+                    <button class="test-button secondary" id="refresh-status-btn">刷新状态</button>
+                </div>
+            </div>
+
+            <!-- 缓存测试 -->
+            <div class="test-card">
+                <h2>🗄️ 缓存功能</h2>
+                <div class="test-item">
+                    <span class="test-label">缓存数量</span>
+                    <span class="test-status" id="cache-count">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">缓存大小</span>
+                    <span class="test-status" id="cache-size">计算中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">离线页面可用</span>
+                    <span class="test-status" id="offline-available">检测中...</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="test-button" id="test-cache-btn">测试缓存</button>
+                    <button class="test-button" id="test-offline-btn">测试离线</button>
+                    <button class="test-button danger" id="clear-cache-btn">清理缓存</button>
+                </div>
+            </div>
+
+            <!-- 网络测试 -->
+            <div class="test-card">
+                <h2>🌐 网络功能</h2>
+                <div class="test-item">
+                    <span class="test-label">在线状态</span>
+                    <span class="test-status" id="online-status">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">连接类型</span>
+                    <span class="test-status" id="connection-type">检测中...</span>
+                </div>
+                <div class="test-item">
+                    <span class="test-label">数据获取</span>
+                    <span class="test-status" id="fetch-test">未测试</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button class="test-button" id="test-fetch-btn">测试数据获取</button>
+                    <button class="test-button secondary" id="simulate-offline-btn">模拟离线</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统信息 -->
+        <div class="info-section">
+            <h2 style="color: #2196f3; margin-bottom: 1.5rem;">📊 系统信息</h2>
+            <div class="info-grid" id="system-info">
+                <!-- 系统信息将在这里动态填充 -->
+            </div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="info-section" style="margin-top: 2rem;">
+            <h2 style="color: #2196f3; margin-bottom: 1rem;">📝 测试日志</h2>
+            <button class="test-button secondary" id="clear-log-btn">清空日志</button>
+            <div class="test-log" id="test-log"></div>
+        </div>
+    </div>
+
+    <script>
+        class PWATester {
+            constructor() {
+                this.log = [];
+                this.init();
+            }
+
+            init() {
+                this.logMessage('PWA Tester 初始化完成');
+                this.checkBasicSupport();
+                this.checkPWAStatus();
+                this.checkCacheInfo();
+                this.checkNetworkInfo();
+                this.updateSystemInfo();
+                this.bindEvents();
+            }
+
+            logMessage(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+                this.log.push(logEntry);
+
+                const logElement = document.getElementById('test-log');
+                logElement.textContent = this.log.join('\n');
+                logElement.scrollTop = logElement.scrollHeight;
+
+                console.log(logEntry);
+            }
+
+            updateStatus(elementId, status, message = '') {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+
+                element.textContent = message || status;
+                element.className = 'test-status';
+
+                if (status === 'pass' || status === '支持' || status === '已安装' || status === '在线') {
+                    element.classList.add('status-pass');
+                } else if (status === 'fail' || status === '不支持' || status === '未安装' || status === '离线') {
+                    element.classList.add('status-fail');
+                } else {
+                    element.classList.add('status-unknown');
+                }
+            }
+
+            checkBasicSupport() {
+                this.logMessage('开始检查基础API支持...');
+
+                // Service Worker
+                const swSupported = 'serviceWorker' in navigator;
+                this.updateStatus('sw-support', swSupported ? 'pass' : 'fail', swSupported ? '支持' : '不支持');
+                this.logMessage(`Service Worker: ${swSupported ? '支持' : '不支持'}`);
+
+                // Cache API
+                const cacheSupported = 'caches' in window;
+                this.updateStatus('cache-support', cacheSupported ? 'pass' : 'fail', cacheSupported ? '支持' : '不支持');
+                this.logMessage(`Cache API: ${cacheSupported ? '支持' : '不支持'}`);
+
+                // Fetch API
+                const fetchSupported = 'fetch' in window;
+                this.updateStatus('fetch-support', fetchSupported ? 'pass' : 'fail', fetchSupported ? '支持' : '不支持');
+                this.logMessage(`Fetch API: ${fetchSupported ? '支持' : '不支持'}`);
+
+                // Push API
+                const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+                this.updateStatus('push-support', pushSupported ? 'pass' : 'fail', pushSupported ? '支持' : '不支持');
+                this.logMessage(`Push API: ${pushSupported ? '支持' : '不支持'}`);
+
+                // Notification API
+                const notificationSupported = 'Notification' in window;
+                this.updateStatus('notification-support', notificationSupported ? 'pass' : 'fail', notificationSupported ? '支持' : '不支持');
+                this.logMessage(`Notification API: ${notificationSupported ? '支持' : '不支持'}`);
+
+                // IndexedDB
+                const idbSupported = 'indexedDB' in window;
+                this.updateStatus('idb-support', idbSupported ? 'pass' : 'fail', idbSupported ? '支持' : '不支持');
+                this.logMessage(`IndexedDB: ${idbSupported ? '支持' : '不支持'}`);
+            }
+
+            checkPWAStatus() {
+                this.logMessage('开始检查PWA状态...');
+
+                // 安装提示
+                const hasInstallPrompt = window.pwaManager && window.pwaManager.deferredPrompt;
+                this.updateStatus('install-prompt', hasInstallPrompt ? 'pass' : 'fail', hasInstallPrompt ? '可用' : '不可用');
+                this.logMessage(`安装提示: ${hasInstallPrompt ? '可用' : '不可用'}`);
+
+                // 安装状态
+                const isInstalled = this.isAppInstalled();
+                this.updateStatus('installed-status', isInstalled ? 'pass' : 'fail', isInstalled ? '已安装' : '未安装');
+                this.logMessage(`安装状态: ${isInstalled ? '已安装' : '未安装'}`);
+
+                // 显示模式
+                const displayMode = this.getDisplayMode();
+                this.updateStatus('display-mode', displayMode === 'standalone' ? 'pass' : 'unknown', displayMode);
+                this.logMessage(`显示模式: ${displayMode}`);
+
+                // Service Worker状态
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        const swState = registration.active ? '已激活' : '未激活';
+                        this.updateStatus('sw-status', registration.active ? 'pass' : 'fail', swState);
+                        this.logMessage(`Service Worker状态: ${swState}`);
+                    });
+                } else {
+                    this.updateStatus('sw-status', 'fail', '不支持');
+                }
+            }
+
+            async checkCacheInfo() {
+                this.logMessage('开始检查缓存信息...');
+
+                try {
+                    const cacheNames = await caches.keys();
+                    this.updateStatus('cache-count', 'pass', `${cacheNames.length} 个`);
+                    this.logMessage(`缓存数量: ${cacheNames.length}`);
+
+                    let totalSize = 0;
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const keys = await cache.keys();
+
+                        for (const request of keys) {
+                            try {
+                                const response = await cache.match(request);
+                                if (response) {
+                                    const blob = await response.clone().blob();
+                                    totalSize += blob.size;
+                                }
+                            } catch (e) {
+                                // 忽略单个文件错误
+                            }
+                        }
+                    }
+
+                    this.updateStatus('cache-size', 'pass', this.formatBytes(totalSize));
+                    this.logMessage(`缓存大小: ${this.formatBytes(totalSize)}`);
+
+                    // 检查离线页面
+                    const offlineResponse = await caches.match('/');
+                    this.updateStatus('offline-available', offlineResponse ? 'pass' : 'fail', offlineResponse ? '可用' : '不可用');
+                    this.logMessage(`离线页面: ${offlineResponse ? '可用' : '不可用'}`);
+
+                } catch (error) {
+                    this.logMessage(`缓存检查失败: ${error.message}`, 'error');
+                    this.updateStatus('cache-count', 'fail', '检查失败');
+                    this.updateStatus('cache-size', 'fail', '检查失败');
+                    this.updateStatus('offline-available', 'fail', '检查失败');
+                }
+            }
+
+            checkNetworkInfo() {
+                this.logMessage('开始检查网络信息...');
+
+                // 在线状态
+                const isOnline = navigator.onLine;
+                this.updateStatus('online-status', isOnline ? 'pass' : 'fail', isOnline ? '在线' : '离线');
+                this.logMessage(`网络状态: ${isOnline ? '在线' : '离线'}`);
+
+                // 连接信息
+                if ('connection' in navigator) {
+                    const connection = navigator.connection;
+                    const effectiveType = connection.effectiveType || '未知';
+                    this.updateStatus('connection-type', 'pass', effectiveType);
+                    this.logMessage(`连接类型: ${effectiveType}`);
+                } else {
+                    this.updateStatus('connection-type', 'unknown', '不支持');
+                    this.logMessage('连接信息: 不支持');
+                }
+
+                // 监听网络变化
+                window.addEventListener('online', () => {
+                    this.updateStatus('online-status', 'pass', '在线');
+                    this.logMessage('网络状态变化: 已连接');
+                });
+
+                window.addEventListener('offline', () => {
+                    this.updateStatus('online-status', 'fail', '离线');
+                    this.logMessage('网络状态变化: 已断开');
+                });
+            }
+
+            updateSystemInfo() {
+                const systemInfo = {
+                    '用户代理': navigator.userAgent,
+                    '平台': navigator.platform,
+                    '语言': navigator.language,
+                    '时区': Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    '屏幕分辨率': `${screen.width} × ${screen.height}`,
+                    '视窗大小': `${window.innerWidth} × ${window.innerHeight}`,
+                    '设备像素比': window.devicePixelRatio || 1,
+                    '内存': navigator.deviceMemory ? `${navigator.deviceMemory} GB` : '未知',
+                    '硬件并发': navigator.hardwareConcurrency || '未知',
+                    '触摸支持': 'ontouchstart' in window ? '是' : '否'
+                };
+
+                const container = document.getElementById('system-info');
+                container.innerHTML = '';
+
+                Object.entries(systemInfo).forEach(([key, value]) => {
+                    const item = document.createElement('div');
+                    item.className = 'info-item';
+                    item.innerHTML = `
+                        <div class="info-label">${key}</div>
+                        <div class="info-value">${value}</div>
+                    `;
+                    container.appendChild(item);
+                });
+
+                this.logMessage('系统信息更新完成');
+            }
+
+            bindEvents() {
+                // 安装测试按钮
+                document.getElementById('install-test-btn').addEventListener('click', () => {
+                    if (window.pwaManager && window.pwaManager.deferredPrompt) {
+                        window.pwaManager.installApp();
+                        this.logMessage('触发安装提示');
+                    } else {
+                        this.logMessage('安装提示不可用', 'warning');
+                    }
+                });
+
+                // 刷新状态按钮
+                document.getElementById('refresh-status-btn').addEventListener('click', () => {
+                    this.checkPWAStatus();
+                    this.logMessage('PWA状态已刷新');
+                });
+
+                // 测试缓存按钮
+                document.getElementById('test-cache-btn').addEventListener('click', () => {
+                    this.testCache();
+                });
+
+                // 测试离线按钮
+                document.getElementById('test-offline-btn').addEventListener('click', () => {
+                    this.testOffline();
+                });
+
+                // 清理缓存按钮
+                document.getElementById('clear-cache-btn').addEventListener('click', async () => {
+                    if (confirm('确定要清理所有缓存吗？')) {
+                        await this.clearAllCaches();
+                    }
+                });
+
+                // 测试数据获取按钮
+                document.getElementById('test-fetch-btn').addEventListener('click', () => {
+                    this.testFetch();
+                });
+
+                // 模拟离线按钮
+                document.getElementById('simulate-offline-btn').addEventListener('click', () => {
+                    this.simulateOffline();
+                });
+
+                // 清空日志按钮
+                document.getElementById('clear-log-btn').addEventListener('click', () => {
+                    this.log = [];
+                    document.getElementById('test-log').textContent = '';
+                    this.logMessage('日志已清空');
+                });
+            }
+
+            async testCache() {
+                this.logMessage('开始测试缓存功能...');
+
+                try {
+                    const testUrl = '/assets/file-list.txt';
+                    const cache = await caches.open('test-cache');
+
+                    // 添加到缓存
+                    await cache.add(testUrl);
+                    this.logMessage('文件已添加到缓存');
+
+                    // 从缓存获取
+                    const cachedResponse = await cache.match(testUrl);
+                    if (cachedResponse) {
+                        this.logMessage('缓存测试成功');
+                    }
+
+                    // 删除测试缓存
+                    await caches.delete('test-cache');
+                    this.logMessage('测试缓存已清理');
+
+                } catch (error) {
+                    this.logMessage(`缓存测试失败: ${error.message}`, 'error');
+                }
+            }
+
+            async testOffline() {
+                this.logMessage('开始测试离线功能...');
+
+                try {
+                    // 测试缓存的页面
+                    const response = await caches.match('/');
+                    if (response) {
+                        this.logMessage('离线页面可用');
+                        this.updateStatus('offline-available', 'pass', '可用');
+                    } else {
+                        this.logMessage('离线页面不可用', 'warning');
+                        this.updateStatus('offline-available', 'fail', '不可用');
+                    }
+                } catch (error) {
+                    this.logMessage(`离线测试失败: ${error.message}`, 'error');
+                }
+            }
+
+            async clearAllCaches() {
+                this.logMessage('开始清理所有缓存...');
+
+                try {
+                    const cacheNames = await caches.keys();
+                    const deletePromises = cacheNames.map(name => caches.delete(name));
+                    await Promise.all(deletePromises);
+
+                    this.logMessage(`已清理 ${cacheNames.length} 个缓存`);
+                    await this.checkCacheInfo();
+                } catch (error) {
+                    this.logMessage(`缓存清理失败: ${error.message}`, 'error');
+                }
+            }
+
+            async testFetch() {
+                this.logMessage('开始测试数据获取...');
+
+                try {
+                    const response = await fetch('/assets/file-list.txt');
+                    if (response.ok) {
+                        this.updateStatus('fetch-test', 'pass', '成功');
+                        this.logMessage('数据获取测试成功');
+                    } else {
+                        this.updateStatus('fetch-test', 'fail', '失败');
+                        this.logMessage(`数据获取失败: ${response.status}`, 'warning');
+                    }
+                } catch (error) {
+                    this.updateStatus('fetch-test', 'fail', '错误');
+                    this.logMessage(`数据获取错误: ${error.message}`, 'error');
+                }
+            }
+
+            simulateOffline() {
+                this.logMessage('模拟离线状态（仅UI更新）');
+                this.updateStatus('online-status', 'fail', '离线（模拟）');
+
+                setTimeout(() => {
+                    this.updateStatus('online-status', navigator.onLine ? 'pass' : 'fail', navigator.onLine ? '在线' : '离线');
+                    this.logMessage('恢复真实网络状态');
+                }, 3000);
+            }
+
+            isAppInstalled() {
+                return window.matchMedia('(display-mode: standalone)').matches ||
+                       window.navigator.standalone ||
+                       document.referrer.includes('android-app://');
+            }
+
+            getDisplayMode() {
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    return 'standalone';
+                } else if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+                    return 'minimal-ui';
+                } else if (window.matchMedia('(display-mode: fullscreen)').matches) {
+                    return 'fullscreen';
+                } else {
+                    return 'browser';
+                }
+            }
+
+            formatBytes(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // 等待PWA管理器加载后初始化测试器
+        document.addEventListener('DOMContentLoaded', () => {
+            const initTester = () => {
+                window.pwaTester = new PWATester();
+            };
+
+            // 如果PWA管理器已加载
+            if (window.pwaManager) {
+                initTester();
+            } else {
+                // 等待PWA管理器加载
+                const checkPWAManager = () => {
+                    if (window.pwaManager) {
+                        initTester();
+                    } else {
+                        setTimeout(checkPWAManager, 100);
+                    }
+                };
+                checkPWAManager();
+            }
+        });
+
+        // 如果没有PWA管理器，也要初始化基本功能
+        setTimeout(() => {
+            if (!window.pwaTester) {
+                window.pwaTester = new PWATester();
+            }
+        }, 1000);
+    </script>
+
+    <!-- 加载PWA管理器 -->
+    <script src="js/pwa-manager.js?v=2.0.0"></script>
+</body>
+</html>

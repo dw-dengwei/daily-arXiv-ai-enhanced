@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="PWA设置 - Daily arXiv AI Enhanced" />
+        <meta name="theme-color" content="#2196f3" />
+        <title>PWA设置 - Daily arXiv AI Enhanced</title>
+        <link
+            rel="icon"
+            type="image/png"
+            href="assets/logo2-removebg-preview.png"
+        />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="stylesheet" href="css/styles.css" />
+        <link rel="stylesheet" href="css/settings.css" />
+        <style>
+            /* PWA设置页面特殊样式 */
+            .pwa-settings-container {
+                max-width: 800px;
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+
+            .pwa-status-card {
+                background: linear-gradient(135deg, #2196f3, #21cbf3);
+                color: white;
+                border-radius: 12px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+            }
+
+            .pwa-status-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .pwa-status-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .pwa-status-item {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+                backdrop-filter: blur(10px);
+            }
+
+            .pwa-status-item .label {
+                font-size: 0.875rem;
+                opacity: 0.8;
+                margin-bottom: 0.5rem;
+            }
+
+            .pwa-status-item .value {
+                font-size: 1.25rem;
+                font-weight: 600;
+            }
+
+            .pwa-status-item .status-indicator {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                margin-right: 0.5rem;
+            }
+
+            .status-online {
+                background: #4caf50;
+            }
+
+            .status-offline {
+                background: #ff9800;
+            }
+
+            .status-error {
+                background: #f44336;
+            }
+
+            .pwa-settings-section {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                border: 1px solid var(--border-color);
+            }
+
+            .pwa-settings-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                color: var(--text-primary);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .pwa-setting-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem 0;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .pwa-setting-item:last-child {
+                border-bottom: none;
+            }
+
+            .pwa-setting-info {
+                flex: 1;
+            }
+
+            .pwa-setting-label {
+                font-weight: 500;
+                margin-bottom: 0.25rem;
+                color: var(--text-primary);
+            }
+
+            .pwa-setting-description {
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                line-height: 1.4;
+            }
+
+            .pwa-toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 50px;
+                height: 24px;
+                background: var(--border-color);
+                border-radius: 24px;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+
+            .pwa-toggle-switch.active {
+                background: #2196f3;
+            }
+
+            .pwa-toggle-switch::after {
+                content: "";
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 20px;
+                height: 20px;
+                background: white;
+                border-radius: 50%;
+                transition: transform 0.3s;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+
+            .pwa-toggle-switch.active::after {
+                transform: translateX(26px);
+            }
+
+            .pwa-cache-info {
+                background: #f5f5f5;
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin: 1rem 0;
+            }
+
+            .pwa-cache-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+            }
+
+            .pwa-button {
+                background: #2196f3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 0.75rem 1.5rem;
+                font-size: 0.875rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .pwa-button:hover {
+                background: #1976d2;
+                transform: translateY(-1px);
+            }
+
+            .pwa-button.secondary {
+                background: #6c757d;
+            }
+
+            .pwa-button.secondary:hover {
+                background: #545b62;
+            }
+
+            .pwa-button.danger {
+                background: #dc3545;
+            }
+
+            .pwa-button.danger:hover {
+                background: #c82333;
+            }
+
+            .pwa-button.success {
+                background: #28a745;
+            }
+
+            .pwa-button.success:hover {
+                background: #218838;
+            }
+
+            .pwa-button:disabled {
+                background: #6c757d;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .pwa-alert {
+                padding: 1rem;
+                border-radius: 8px;
+                margin: 1rem 0;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .pwa-alert.info {
+                background: #d1ecf1;
+                color: #0c5460;
+                border: 1px solid #b6d4db;
+            }
+
+            .pwa-alert.warning {
+                background: #fff3cd;
+                color: #856404;
+                border: 1px solid #faeeba;
+            }
+
+            .pwa-alert.success {
+                background: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+
+            .pwa-alert.error {
+                background: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+
+            .pwa-loading {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #2196f3;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .pwa-version-info {
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 1rem;
+                font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+                font-size: 0.875rem;
+                white-space: pre-line;
+                color: var(--text-secondary);
+            }
+
+            @media (max-width: 768px) {
+                .pwa-settings-container {
+                    margin: 1rem auto;
+                    padding: 0 0.5rem;
+                }
+
+                .pwa-status-card {
+                    padding: 1.5rem;
+                }
+
+                .pwa-status-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .pwa-settings-section {
+                    padding: 1.5rem;
+                }
+
+                .pwa-setting-item {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 1rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app-container">
+            <header>
+                <div class="header-content">
+                    <div class="header-left">
+                        <a href="index.html" class="button secondary">
+                            ← 返回主页
+                        </a>
+                    </div>
+
+                    <div class="header-center">
+                        <h1>PWA 设置</h1>
+                    </div>
+
+                    <div class="header-controls">
+                        <a href="settings.html" class="button"> 应用设置 </a>
+                    </div>
+                </div>
+            </header>
+
+            <main class="pwa-settings-container">
+                <!-- PWA 状态卡片 -->
+                <div class="pwa-status-card">
+                    <div class="pwa-status-title">📱 PWA 应用状态</div>
+                    <div class="pwa-status-grid">
+                        <div class="pwa-status-item">
+                            <div class="label">应用版本</div>
+                            <div class="value" id="appVersion">-</div>
+                        </div>
+                        <div class="pwa-status-item">
+                            <div class="label">网络状态</div>
+                            <div class="value" id="networkStatus">
+                                <span
+                                    class="status-indicator status-online"
+                                ></span>
+                                在线
+                            </div>
+                        </div>
+                        <div class="pwa-status-item">
+                            <div class="label">安装状态</div>
+                            <div class="value" id="installStatus">未安装</div>
+                        </div>
+                        <div class="pwa-status-item">
+                            <div class="label">Service Worker</div>
+                            <div class="value" id="swStatus">未注册</div>
+                        </div>
+                    </div>
+
+                    <div id="installPrompt" style="display: none">
+                        <div class="pwa-alert info">
+                            <span>💡</span>
+                            <div>
+                                <strong>可以安装此应用！</strong>
+                                <p>将应用安装到主屏幕，获得更好的使用体验。</p>
+                            </div>
+                        </div>
+                        <button id="installButton" class="pwa-button success">
+                            📱 安装应用
+                        </button>
+                    </div>
+
+                    <div id="updatePrompt" style="display: none">
+                        <div class="pwa-alert warning">
+                            <span>🔄</span>
+                            <div>
+                                <strong>发现新版本！</strong>
+                                <p>
+                                    有新的应用更新可用，建议立即更新以获得最新功能。
+                                </p>
+                            </div>
+                        </div>
+                        <button id="updateButton" class="pwa-button">
+                            🔄 立即更新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 功能设置 -->
+                <div class="pwa-settings-section">
+                    <div class="pwa-settings-title">⚙️ 功能设置</div>
+
+                    <div class="pwa-setting-item">
+                        <div class="pwa-setting-info">
+                            <div class="pwa-setting-label">推送通知</div>
+                            <div class="pwa-setting-description">
+                                接收新论文发布的推送通知
+                            </div>
+                        </div>
+                        <div
+                            class="pwa-toggle-switch"
+                            data-setting="notifications"
+                        ></div>
+                    </div>
+
+                    <div class="pwa-setting-item">
+                        <div class="pwa-setting-info">
+                            <div class="pwa-setting-label">智能预取</div>
+                            <div class="pwa-setting-description">
+                                自动预取最新论文数据，提升离线体验
+                            </div>
+                        </div>
+                        <div
+                            class="pwa-toggle-switch active"
+                            data-setting="prefetch"
+                        ></div>
+                    </div>
+
+                    <div class="pwa-setting-item">
+                        <div class="pwa-setting-info">
+                            <div class="pwa-setting-label">后台同步</div>
+                            <div class="pwa-setting-description">
+                                在后台自动同步数据，保持内容最新
+                            </div>
+                        </div>
+                        <div
+                            class="pwa-toggle-switch active"
+                            data-setting="backgroundSync"
+                        ></div>
+                    </div>
+
+                    <div class="pwa-setting-item">
+                        <div class="pwa-setting-info">
+                            <div class="pwa-setting-label">自动更新检查</div>
+                            <div class="pwa-setting-description">
+                                定期检查应用更新（每30分钟）
+                            </div>
+                        </div>
+                        <div
+                            class="pwa-toggle-switch active"
+                            data-setting="autoUpdate"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- 缓存管理 -->
+                <div class="pwa-settings-section">
+                    <div class="pwa-settings-title">🗄️ 缓存管理</div>
+
+                    <div class="pwa-cache-info">
+                        <div class="pwa-cache-item">
+                            <span>应用缓存大小</span>
+                            <span id="cacheSize">计算中...</span>
+                        </div>
+                        <div class="pwa-cache-item">
+                            <span>数据文件数量</span>
+                            <span id="dataFiles">-</span>
+                        </div>
+                        <div class="pwa-cache-item">
+                            <span>最后更新时间</span>
+                            <span id="lastUpdate">-</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap">
+                        <button id="refreshCacheButton" class="pwa-button">
+                            🔄 刷新缓存
+                        </button>
+                        <button id="clearCacheButton" class="pwa-button danger">
+                            🗑️ 清理缓存
+                        </button>
+                        <button
+                            id="downloadOfflineButton"
+                            class="pwa-button secondary"
+                        >
+                            📥 下载离线数据
+                        </button>
+                    </div>
+
+                    <div id="cacheAlert"></div>
+                </div>
+
+                <!-- 系统信息 -->
+                <div class="pwa-settings-section">
+                    <div class="pwa-settings-title">📊 系统信息</div>
+
+                    <div class="pwa-version-info" id="systemInfo">
+                        加载中...
+                    </div>
+                </div>
+
+                <!-- 高级选项 -->
+                <div class="pwa-settings-section">
+                    <div class="pwa-settings-title">🔧 高级选项</div>
+
+                    <div class="pwa-setting-item">
+                        <div class="pwa-setting-info">
+                            <div class="pwa-setting-label">开发者模式</div>
+                            <div class="pwa-setting-description">
+                                显示详细的调试信息和日志
+                            </div>
+                        </div>
+                        <div
+                            class="pwa-toggle-switch"
+                            data-setting="developerMode"
+                        ></div>
+                    </div>
+
+                    <div
+                        style="
+                            display: flex;
+                            gap: 1rem;
+                            flex-wrap: wrap;
+                            margin-top: 1.5rem;
+                        "
+                    >
+                        <button
+                            id="exportSettingsButton"
+                            class="pwa-button secondary"
+                        >
+                            📤 导出设置
+                        </button>
+                        <button
+                            id="importSettingsButton"
+                            class="pwa-button secondary"
+                        >
+                            📥 导入设置
+                        </button>
+                        <button
+                            id="resetSettingsButton"
+                            class="pwa-button danger"
+                        >
+                            🔄 重置设置
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 文件输入（隐藏） -->
+        <input
+            type="file"
+            id="importFileInput"
+            accept=".json"
+            style="display: none"
+        />
+
+        <!-- PWA管理器 -->
+        <script src="js/pwa-manager.js?v=2.0.0"></script>
+
+        <script>
+            class PWASettingsManager {
+                constructor() {
+                    this.pwaManager = window.pwaManager;
+                    this.settings = this.loadSettings();
+                    this.init();
+                }
+
+                init() {
+                    this.updateStatus();
+                    this.bindEvents();
+                    this.updateCacheInfo();
+                    this.updateSystemInfo();
+
+                    // 定期更新状态
+                    setInterval(() => this.updateStatus(), 5000);
+                }
+
+                bindEvents() {
+                    // 安装按钮
+                    document
+                        .getElementById("installButton")
+                        ?.addEventListener("click", () => {
+                            this.pwaManager?.installApp();
+                        });
+
+                    // 更新按钮
+                    document
+                        .getElementById("updateButton")
+                        ?.addEventListener("click", () => {
+                            this.pwaManager?.applyUpdate();
+                        });
+
+                    // 功能开关
+                    document
+                        .querySelectorAll(".pwa-toggle-switch")
+                        .forEach((toggle) => {
+                            toggle.addEventListener("click", (e) => {
+                                const setting = e.target.dataset.setting;
+                                this.toggleSetting(setting, e.target);
+                            });
+                        });
+
+                    // 缓存管理按钮
+                    document
+                        .getElementById("refreshCacheButton")
+                        ?.addEventListener("click", () => {
+                            this.refreshCache();
+                        });
+
+                    document
+                        .getElementById("clearCacheButton")
+                        ?.addEventListener("click", () => {
+                            this.clearCache();
+                        });
+
+                    document
+                        .getElementById("downloadOfflineButton")
+                        ?.addEventListener("click", () => {
+                            this.downloadOfflineData();
+                        });
+
+                    // 高级选项按钮
+                    document
+                        .getElementById("exportSettingsButton")
+                        ?.addEventListener("click", () => {
+                            this.exportSettings();
+                        });
+
+                    document
+                        .getElementById("importSettingsButton")
+                        ?.addEventListener("click", () => {
+                            document.getElementById("importFileInput").click();
+                        });
+
+                    document
+                        .getElementById("importFileInput")
+                        ?.addEventListener("change", (e) => {
+                            this.importSettings(e.target.files[0]);
+                        });
+
+                    document
+                        .getElementById("resetSettingsButton")
+                        ?.addEventListener("click", () => {
+                            this.resetSettings();
+                        });
+                }
+
+                updateStatus() {
+                    if (!this.pwaManager) return;
+
+                    const status = this.pwaManager.getAppStatus();
+
+                    // 更新状态显示
+                    document.getElementById("appVersion").textContent =
+                        status.version;
+
+                    const networkStatus =
+                        document.getElementById("networkStatus");
+                    const indicator =
+                        networkStatus.querySelector(".status-indicator");
+                    if (status.isOnline) {
+                        networkStatus.innerHTML =
+                            '<span class="status-indicator status-online"></span>在线';
+                    } else {
+                        networkStatus.innerHTML =
+                            '<span class="status-indicator status-offline"></span>离线';
+                    }
+
+                    document.getElementById("installStatus").textContent =
+                        status.isInstalled ? "已安装" : "未安装";
+
+                    document.getElementById("swStatus").textContent =
+                        status.swRegistered ? "已注册" : "未注册";
+
+                    // 显示/隐藏安装和更新提示
+                    const installPrompt =
+                        document.getElementById("installPrompt");
+                    const updatePrompt =
+                        document.getElementById("updatePrompt");
+
+                    if (!status.isInstalled && this.pwaManager.deferredPrompt) {
+                        installPrompt.style.display = "block";
+                    } else {
+                        installPrompt.style.display = "none";
+                    }
+
+                    if (status.updateAvailable) {
+                        updatePrompt.style.display = "block";
+                    } else {
+                        updatePrompt.style.display = "none";
+                    }
+                }
+
+                toggleSetting(setting, toggleElement) {
+                    const isActive = toggleElement.classList.contains("active");
+
+                    if (isActive) {
+                        toggleElement.classList.remove("active");
+                        this.settings[setting] = false;
+                    } else {
+                        toggleElement.classList.add("active");
+                        this.settings[setting] = true;
+                    }
+
+                    this.saveSettings();
+                    this.applySetting(setting, this.settings[setting]);
+                }
+
+                applySetting(setting, value) {
+                    if (!this.pwaManager) return;
+
+                    switch (setting) {
+                        case "notifications":
+                            if (value) {
+                                this.pwaManager.enableNotifications();
+                            }
+                            break;
+                        case "prefetch":
+                            this.pwaManager.options.enablePrefetch = value;
+                            break;
+                        case "backgroundSync":
+                            this.pwaManager.options.enableBackgroundSync =
+                                value;
+                            break;
+                        case "autoUpdate":
+                            // 实现自动更新逻辑
+                            break;
+                        case "developerMode":
+                            if (value) {
+                                console.log(
+                                    "[PWA Settings] Developer mode enabled",
+                                );
+                            }
+                            break;
+                    }
+
+                    this.pwaManager.saveSettings();
+                }
+
+                async updateCacheInfo() {
+                    try {
+                        // 计算缓存大小
+                        const cacheNames = await caches.keys();
+                        let totalSize = 0;
+                        let fileCount = 0;
+
+                        for (const cacheName of cacheNames) {
+                            const cache = await caches.open(cacheName);
+                            const keys = await cache.keys();
+                            fileCount += keys.length;
+
+                            for (const request of keys) {
+                                try {
+                                    const response = await cache.match(request);
+                                    if (response) {
+                                        const size =
+                                            await this.getResponseSize(
+                                                response,
+                                            );
+                                        totalSize += size;
+                                    }
+                                } catch (error) {
+                                    // 忽略单个文件的错误
+                                }
+                            }
+                        }
+
+                        document.getElementById("cacheSize").textContent =
+                            this.formatBytes(totalSize);
+                        document.getElementById("dataFiles").textContent =
+                            fileCount;
+
+                        // 更新最后更新时间
+                        const lastUpdate =
+                            localStorage.getItem("pwa-last-update");
+                        document.getElementById("lastUpdate").textContent =
+                            lastUpdate
+                                ? new Date(lastUpdate).toLocaleString()
+                                : "从未";
+                    } catch (error) {
+                        console.error(
+                            "[PWA Settings] Failed to get cache info:",
+                            error,
+                        );
+                        document.getElementById("cacheSize").textContent =
+                            "计算失败";
+                    }
+                }
+
+                async getResponseSize(response) {
+                    try {
+                        const blob = await response.clone().blob();
+                        return blob.size;
+                    } catch (error) {
+                        return 0;
+                    }
+                }
+
+                formatBytes(bytes) {
+                    if (bytes === 0) return "0 Bytes";
+                    const k = 1024;
+                    const sizes = ["Bytes", "KB", "MB", "GB"];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return (
+                        parseFloat((bytes / Math.pow(k, i)).toFixed(2)) +
+                        " " +
+                        sizes[i]
+                    );
+                }
+
+                updateSystemInfo() {
+                    const info = {
+                        用户代理: navigator.userAgent,
+                        平台: navigator.platform,
+                        语言: navigator.language,
+                        在线状态: navigator.onLine ? "在线" : "离线",
+                        屏幕分辨率: `${screen.width}x${screen.height}`,
+                        视窗大小: `${window.innerWidth}x${window.innerHeight}`,
+                        "Service Worker 支持":
+                            "serviceWorker" in navigator ? "是" : "否",
+                        推送通知支持: "Notification" in window ? "是" : "否",
+                        "缓存 API 支持": "caches" in window ? "是" : "否",
+                        "IndexedDB 支持": "indexedDB" in window ? "是" : "否",
+                    };
+
+                    const systemInfo = Object.entries(info)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join("\n");
+
+                    document.getElementById("systemInfo").textContent =
+                        systemInfo;
+                }
+
+                async refreshCache() {
+                    const button =
+                        document.getElementById("refreshCacheButton");
+                    const originalText = button.textContent;
+
+                    button.innerHTML =
+                        '<span class="pwa-loading"></span> 刷新中...';
+                    button.disabled = true;
+
+                    try {
+                        if (this.pwaManager?.swRegistration) {
+                            await this.pwaManager.swRegistration.update();
+                        }
+
+                        // 更新缓存信息
+                        await this.updateCacheInfo();
+                        localStorage.setItem(
+                            "pwa-last-update",
+                            new Date().toISOString(),
+                        );
+
+                        this.showAlert("success", "缓存刷新成功！");
+                    } catch (error) {
+                        console.error(
+                            "[PWA Settings] Cache refresh failed:",
+                            error,
+                        );
+                        this.showAlert(
+                            "error",
+                            "缓存刷新失败：" + error.message,
+                        );
+                    }
+
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
+
+                async clearCache() {
+                    if (
+                        !confirm("确定要清理所有缓存吗？这将删除所有离线数据。")
+                    ) {
+                        return;
+                    }
+
+                    const button = document.getElementById("clearCacheButton");
+                    const originalText = button.textContent;
+
+                    button.innerHTML =
+                        '<span class="pwa-loading"></span> 清理中...';
+                    button.disabled = true;
+
+                    try {
+                        if (this.pwaManager) {
+                            await this.pwaManager.clearCache();
+                        }
+
+                        // 更新缓存信息
+                        await this.updateCacheInfo();
+
+                        this.showAlert("success", "缓存清理完成！");
+                    } catch (error) {
+                        console.error(
+                            "[PWA Settings] Cache clear failed:",
+                            error,
+                        );
+                        this.showAlert(
+                            "error",
+                            "缓存清理失败：" + error.message,
+                        );
+                    }
+
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
+
+                async downloadOfflineData() {
+                    const button = document.getElementById(
+                        "downloadOfflineButton",
+                    );
+                    const originalText = button.textContent;
+
+                    button.innerHTML =
+                        '<span class="pwa-loading"></span> 下载中...';
+                    button.disabled = true;
+
+                    try {
+                        // 获取最新的论文数据文件
+                        const response = await fetch("/assets/file-list.txt");
+                        const fileList = await response.text();
+                        const files = fileList
+                            .split("\n")
+                            .filter((line) => line.trim())
+                            .slice(-5) // 最新5个文件
+                            .map((file) => `/data/${file}`);
+
+                        if (this.pwaManager) {
+                            this.pwaManager.sendMessageToSW("PREFETCH_DATA", {
+                                urls: files,
+                            });
+                        }
+
+                        this.showAlert(
+                            "success",
+                            `已开始下载 ${files.length} 个数据文件`,
+                        );
+                    } catch (error) {
+                        console.error("[PWA Settings] Download failed:", error);
+                        this.showAlert("error", "下载失败：" + error.message);
+                    }
+
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
+
+                exportSettings() {
+                    const exportData = {
+                        pwaSettings: this.settings,
+                        appSettings: {
+                            preferredKeywords: JSON.parse(
+                                localStorage.getItem("preferredKeywords") ||
+                                    "[]",
+                            ),
+                            preferredAuthors: JSON.parse(
+                                localStorage.getItem("preferredAuthors") ||
+                                    "[]",
+                            ),
+                        },
+                        timestamp: new Date().toISOString(),
+                    };
+
+                    const blob = new Blob(
+                        [JSON.stringify(exportData, null, 2)],
+                        { type: "application/json" },
+                    );
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `pwa-settings-${new Date().toISOString().split("T")[0]}.json`;
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+                    this.showAlert("success", "设置导出成功！");
+                }
+
+                async importSettings(file) {
+                    if (!file) return;
+
+                    try {
+                        const text = await file.text();
+                        const importData = JSON.parse(text);
+
+                        if (importData.pwaSettings) {
+                            this.settings = {
+                                ...this.settings,
+                                ...importData.pwaSettings,
+                            };
+                            this.saveSettings();
+                        }
+
+                        if (importData.appSettings) {
+                            if (importData.appSettings.preferredKeywords) {
+                                localStorage.setItem(
+                                    "preferredKeywords",
+                                    JSON.stringify(
+                                        importData.appSettings
+                                            .preferredKeywords,
+                                    ),
+                                );
+                            }
+                            if (importData.appSettings.preferredAuthors) {
+                                localStorage.setItem(
+                                    "preferredAuthors",
+                                    JSON.stringify(
+                                        importData.appSettings.preferredAuthors,
+                                    ),
+                                );
+                            }
+                        }
+
+                        this.showAlert(
+                            "success",
+                            "设置导入成功！页面将在3秒后刷新",
+                        );
+                        setTimeout(() => window.location.reload(), 3000);
+                    } catch (error) {
+                        console.error("[PWA Settings] Import failed:", error);
+                        this.showAlert("error", "导入失败：" + error.message);
+                    }
+                }
+
+                resetSettings() {
+                    if (!confirm("确定要重置所有PWA设置吗？此操作不可恢复。")) {
+                        return;
+                    }
+
+                    // 重置PWA设置
+                    localStorage.removeItem("pwa-settings");
+                    this.settings = this.getDefaultSettings();
+                    this.saveSettings();
+
+                    // 更新UI
+                    this.updateSettingsUI();
+
+                    this.showAlert("success", "设置重置完成！");
+                }
+
+                showAlert(type, message) {
+                    const alertDiv = document.getElementById("cacheAlert");
+                    alertDiv.innerHTML = `
+                        <div class="pwa-alert ${type}">
+                            <span>${type === "success" ? "✅" : type === "warning" ? "⚠️" : type === "error" ? "❌" : "ℹ️"}</span>
+                            <div>${message}</div>
+                        </div>
+                    `;
+
+                    setTimeout(() => {
+                        alertDiv.innerHTML = "";
+                    }, 5000);
+                }
+
+                loadSettings() {
+                    const defaults = this.getDefaultSettings();
+                    const saved = JSON.parse(
+                        localStorage.getItem("pwa-settings") || "{}",
+                    );
+                    return { ...defaults, ...saved };
+                }
+
+                getDefaultSettings() {
+                    return {
+                        notifications: false,
+                        prefetch: true,
+                        backgroundSync: true,
+                        autoUpdate: true,
+                        developerMode: false,
+                    };
+                }
+
+                saveSettings() {
+                    localStorage.setItem(
+                        "pwa-settings",
+                        JSON.stringify(this.settings),
+                    );
+                }
+
+                updateSettingsUI() {
+                    document
+                        .querySelectorAll(".pwa-toggle-switch")
+                        .forEach((toggle) => {
+                            const setting = toggle.dataset.setting;
+                            if (this.settings[setting]) {
+                                toggle.classList.add("active");
+                            } else {
+                                toggle.classList.remove("active");
+                            }
+                        });
+                }
+            }
+
+            // 初始化PWA设置管理器
+            document.addEventListener("DOMContentLoaded", () => {
+                if (window.pwaManager) {
+                    window.pwaSettingsManager = new PWASettingsManager();
+                } else {
+                    // 等待PWA管理器加载
+                    const checkPWAManager = () => {
+                        if (window.pwaManager) {
+                            window.pwaSettingsManager =
+                                new PWASettingsManager();
+                        } else {
+                            setTimeout(checkPWAManager, 100);
+                        }
+                    };
+                    checkPWAManager();
+                }
+            });
+        </script>
+    </body>
+</html>
