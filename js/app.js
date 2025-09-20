@@ -415,6 +415,37 @@ function initEventListeners() {
   });
 }
 
+// Function to detect preferred language based on browser settings
+function getPreferredLanguage() {
+  const browserLang = navigator.language || navigator.userLanguage;
+  // Check if browser is set to Chinese variants
+  if (browserLang.startsWith('zh')) {
+    return 'Chinese';
+  }
+  // Default to English for all other languages
+  return 'English';
+}
+
+// Function to select the best available language for a date
+function selectLanguageForDate(date, preferredLanguage = null) {
+  const availableLanguages = window.dateLanguageMap?.get(date) || [];
+  
+  if (availableLanguages.length === 0) {
+    return 'English'; // fallback
+  }
+  
+  // Use provided preference or detect from browser
+  const preferred = preferredLanguage || getPreferredLanguage();
+  
+  // If preferred language is available, use it
+  if (availableLanguages.includes(preferred)) {
+    return preferred;
+  }
+  
+  // Fallback: prefer English if available, otherwise use the first available
+  return availableLanguages.includes('English') ? 'English' : availableLanguages[0];
+}
+
 async function fetchAvailableDates() {
   try {
     const response = await fetch('assets/file-list.txt');
@@ -425,14 +456,26 @@ async function fetchAvailableDates() {
     const text = await response.text();
     const files = text.trim().split('\n');
 
-    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_Chinese\.jsonl/;
+    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Chinese)\.jsonl/;
+    const dateLanguageMap = new Map(); // Store date -> available languages
     const dates = [];
+    
     files.forEach(file => {
       const match = file.match(dateRegex);
-      if (match && match[1]) {
-        dates.push(match[1]);
+      if (match && match[1] && match[2]) {
+        const date = match[1];
+        const language = match[2];
+        
+        if (!dateLanguageMap.has(date)) {
+          dateLanguageMap.set(date, []);
+          dates.push(date);
+        }
+        dateLanguageMap.get(date).push(language);
       }
     });
+    
+    // Store the language mapping globally for later use
+    window.dateLanguageMap = dateLanguageMap;
     availableDates = [...new Set(dates)];
     availableDates.sort((a, b) => new Date(b) - new Date(a));
 
@@ -531,7 +574,8 @@ async function loadPapersByDate(date) {
   `;
   
   try {
-    const response = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
+    const selectedLanguage = selectLanguageForDate(date);
+    const response = await fetch(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
     const text = await response.text();
     
     paperData = parseJsonlData(text, date);
@@ -1104,7 +1148,8 @@ async function loadPapersByDateRange(startDate, endDate) {
     const allPaperData = {};
     
     for (const date of validDatesInRange) {
-      const response = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
+      const selectedLanguage = selectLanguageForDate(date);
+      const response = await fetch(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
       const text = await response.text();
       const dataPapers = parseJsonlData(text, date);
       
