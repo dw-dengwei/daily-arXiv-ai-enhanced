@@ -37,23 +37,36 @@ if __name__ == "__main__":
     for cate in categories:
         markdown += f"\n\n<div id='{cate}'></div>\n\n"
         markdown += f"# {cate} [[Back]](#toc)\n\n"
-        markdown += "\n\n".join(
-            [
-                template.format(
-                    title=item["title"],
-                    authors=",".join(item["authors"]),
-                    summary=item["summary"],
-                    url=item['abs'],
-                    tldr=item['AI']['tldr'],
-                    motivation=item['AI']['motivation'],
-                    method=item['AI']['method'],
-                    result=item['AI']['result'],
-                    conclusion=item['AI']['conclusion'],
-                    cate=item['categories'][0],
-                    idx=next(idx)
+        papers = []
+        for item in data:
+            if item["categories"][0] == cate:
+                # Safely access AI fields with default values
+                ai_data = item.get('AI', {})
+                if not ai_data or not isinstance(ai_data, dict):
+                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to missing or invalid AI data")
+                    continue
+                
+                # Check if all required AI fields are present
+                required_fields = ['tldr', 'motivation', 'method', 'result', 'conclusion']
+                if not all(field in ai_data for field in required_fields):
+                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to incomplete AI fields")
+                    continue
+                
+                papers.append(
+                    template.format(
+                        title=item["title"],
+                        authors=",".join(item["authors"]),
+                        summary=item["summary"],
+                        url=item['abs'],
+                        tldr=ai_data.get('tldr', ''),
+                        motivation=ai_data.get('motivation', ''),
+                        method=ai_data.get('method', ''),
+                        result=ai_data.get('result', ''),
+                        conclusion=ai_data.get('conclusion', ''),
+                        cate=item['categories'][0],
+                        idx=next(idx)
+                    )
                 )
-                for item in data if item["categories"][0] == cate
-            ]
-        )
+        markdown += "\n\n".join(papers)
     with open(args.data.split('_')[0] + '.md', "w") as f:
         f.write(markdown)
