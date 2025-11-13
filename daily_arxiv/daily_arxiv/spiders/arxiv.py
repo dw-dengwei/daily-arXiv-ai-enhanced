@@ -60,14 +60,11 @@ class ArxivSpider(scrapy.Spider):
                 
                 # 检查论文分类是否与目标分类有交集
                 paper_categories = set(categories_in_paper)
-                if paper_categories.intersection(self.target_categories):
-                    yield {
-                        "id": arxiv_id,
-                        "categories": list(paper_categories),  # 添加分类信息用于调试
+                yield {
+                    "id": arxiv_id,
+                    "categories": list(paper_categories),  # 添加分类信息用于调试
                     }
-                    self.logger.info(f"Found paper {arxiv_id} with categories {paper_categories}")
-                else:
-                    self.logger.debug(f"Skipped paper {arxiv_id} with categories {paper_categories} (not in target {self.target_categories})")
+                self.logger.info(f"Found paper {arxiv_id} with categories {paper_categories}")
             else:
                 # 如果无法获取分类信息，记录警告但仍然返回论文（保持向后兼容）
                 self.logger.warning(f"Could not extract categories for paper {arxiv_id}, including anyway")
