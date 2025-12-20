@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Verification - daily-arXiv-ai-enhanced</title>
+    <style>
+        /* Clean login page styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 30px;
+            color: #333;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+            padding: 10px;
+            background: #fee;
+            border-radius: 6px;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .remember-me {
+            margin-top: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .remember-me input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+        .remember-me label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        /* Site logo styles */
+        .site-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none !important;
+            margin-bottom: 30px;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+        .site-logo:hover {
+            text-decoration: none;
+            opacity: 0.9;
+        }
+        .logo-image {
+            height: 36px;
+            width: auto;
+        }
+        .site-title {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <a href="index.html" class="site-logo">
+            <img src="assets/logo2-removebg-preview.png" alt="Daily arXiv AI Enhanced Logo" class="logo-image">
+            <span class="site-title">Daily arXiv AI Enhanced</span>
+        </a>
+        <h1>Access Verification</h1>
+        <div class="subtitle">Please enter password to continue</div>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                    autofocus
+                    autocomplete="current-password"
+                >
+            </div>
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" checked>
+                <label for="rememberMe">Remember me for 7 days</label>
+            </div>
+            <button type="submit">Verify Access</button>
+            <div class="error-message" id="errorMessage">
+                ❌ Invalid password. Please try again.
+            </div>
+        </form>
+        <div class="footer">
+            Powered by daily-arXiv-ai-enhanced
+        </div>
+    </div>
+
+    <script src="js/auth-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        const form = document.getElementById('loginForm');
+        const passwordInput = document.getElementById('password');
+        const rememberMe = document.getElementById('rememberMe');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // If already authenticated, redirect to target page
+        if (Auth.isAuthenticated()) {
+            const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
+            window.location.href = redirect;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = passwordInput.value;
+            const remember = rememberMe.checked;
+
+            if (await Auth.login(password, remember)) {
+                // Login successful, redirect
+                const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
+                window.location.href = redirect;
+            } else {
+                // Login failed
+                errorMessage.style.display = 'block';
+                passwordInput.value = '';
+                passwordInput.focus();
+
+                // Hide error message after 3 seconds
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        // Handle Enter key in password field
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

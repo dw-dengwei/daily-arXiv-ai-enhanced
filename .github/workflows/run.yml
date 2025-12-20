@@ -155,7 +155,41 @@ jobs:
         echo "更新文件列表... / Updating file list..."
         ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
         echo "文件列表更新完成 / File list updated"
-        
+
+    - name: Generate password hash and inject into config
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      run: |
+        echo "🔐 Generating password hash for authentication..."
+
+        PASSWORD="${{ secrets.ACCESS_PASSWORD }}"
+
+        if [ -z "$PASSWORD" ]; then
+          echo "⚠️  WARNING: ACCESS_PASSWORD not set in Secrets"
+          echo "⚠️  Password protection will be DISABLED"
+          echo "⚠️  To enable password protection, add ACCESS_PASSWORD in repository Secrets"
+          echo "ℹ️  Website will remain publicly accessible without authentication"
+
+          # Use a special value that will disable authentication
+          PASSWORD_HASH="DISABLED_NO_PASSWORD_SET_IN_SECRETS"
+        else
+          # Generate SHA-256 hash using openssl
+          PASSWORD_HASH=$(echo -n "$PASSWORD" | openssl dgst -sha256 -hex | awk '{print $2}')
+          echo "✅ Password hash generated successfully"
+          echo "✅ Hash length: ${#PASSWORD_HASH} characters"
+          echo "🔐 Password protection is ENABLED"
+        fi
+
+        # Inject hash into auth-config.js
+        if [ -f "js/auth-config.js" ]; then
+          sed -i "s/PLACEHOLDER_PASSWORD_HASH/$PASSWORD_HASH/" js/auth-config.js
+          echo "✅ Password hash injected into js/auth-config.js"
+        else
+          echo "❌ ERROR: js/auth-config.js not found!"
+          exit 1
+        fi
+
+        echo "🔐 Authentication setup complete"
+
     - name: Summary
       run: |
         if [ "${{ steps.dedup_check.outputs.has_new_content }}" = "true" ]; then

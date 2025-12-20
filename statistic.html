@@ -15,6 +15,22 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/jasondavies/d3-cloud/build/d3.layout.cloud.js"></script>
     <script src="https://unpkg.com/compromise@14.14.4/builds/compromise.js"></script>
+
+    <!-- Authentication Scripts -->
+    <script src="js/auth-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Check authentication on page load
+        Auth.requireAuth();
+
+        // Show logout button only if password protection is enabled
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton && Auth.isPasswordEnabled()) {
+                logoutButton.style.display = '';
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -66,6 +82,11 @@
                             <path d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z" fill="currentColor"/>
                         </svg>
                     </a>
+                    <button id="logoutButton" onclick="Auth.logout()" class="icon-button" title="Logout" style="border: none; background: transparent; cursor: pointer; color: #e74c3c; display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.59L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </header>

@@ -2,7 +2,7 @@
 :root {
   --primary-color: #667eea;
   --secondary-color: #764ba2;
-  --accent-color: #a78bfa;
+  --accent-color: #6d2dad;
   --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --gradient-light: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
   --background-color: #fafbff;
@@ -19,10 +19,14 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --transition: all 0.2s ease;
-  --match-highlight: rgba(255, 215, 0, 0.08);
+  --match-highlight: rgba(255, 223, 77, 0.22); /* 更明显的浅黄色背景 */
   --gold-color: #ffd700;
   --gold-dark: #d4af37;
   --gold-gradient: linear-gradient(135deg, #ffd700 0%, #d4af37 100%);
+  --author-color: #10b981;
+  --author-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --keyword-color: #8b5cf6;
+  --keyword-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
 }
 
 * {
@@ -322,7 +326,7 @@ header {
   position: relative;
 }
 
-.category-nav-label, .keyword-nav-label {
+.category-nav-label, .filter-nav-label {
   font-weight: 600;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -359,7 +363,7 @@ header {
   overflow-y: hidden;
 }
 
-.keyword-scroll {
+.filter-scroll {
   display: flex;
   overflow-x: auto;
   gap: 10px;
@@ -373,11 +377,53 @@ header {
   overflow-y: hidden;
 }
 
-.keyword-scroll::-webkit-scrollbar {
+/* Text search UI */
+.text-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.text-search .search-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--background-hover);
+  border: 1px solid var(--border-accent);
+  border-radius: 16px;
+  padding: 4px 8px;
+}
+
+#textSearchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--text-color);
+  width: 220px;
+}
+
+.text-search .clear-x {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0,0,0,0.08);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-search .clear-x:hover {
+  background-color: rgba(0,0,0,0.14);
+}
+
+.filter-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.keyword-label-container {
+.filter-label-container {
   display: flex;
   align-items: center;
   max-width: 1440px; /* 与main容器的max-width相同 */
@@ -450,6 +496,44 @@ header {
   background: var(--gradient-primary);
   color: white;
   box-shadow: var(--shadow-sm);
+}
+
+/* 作者按钮样式 */
+.author-button {
+  background-color: rgba(102, 126, 234, 0.08); /* primary tint */
+  color: var(--primary-color);
+  border: 1px solid rgba(102, 126, 234, 0.25);
+}
+
+.author-button:hover {
+  background-color: rgba(102, 126, 234, 0.12);
+  border-color: rgba(102, 126, 234, 0.35);
+}
+
+.author-button.active {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+}
+
+/* 关键词按钮样式 */
+.keyword-button {
+  background-color: rgba(167, 139, 250, 0.10); /* accent tint */
+  color: var(--accent-color);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+.keyword-button:hover {
+  background-color: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.35);
+}
+
+.keyword-button.active {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.25);
 }
 
 .keyword-tag.active {
@@ -1149,7 +1233,7 @@ input:checked + .toggle-slider:before {
     flex-wrap: nowrap; /* 确保不换行 */
   }
   
-  .keyword-scroll {
+  .filter-scroll {
     padding: 0 16px 8px;
     margin-top: -4px;
     gap: 6px;
@@ -1591,52 +1675,9 @@ footer {
   text-transform: none;
 }
 
-/* Author 标签容器 */
-.author-label-container {
-  display: flex;
-  align-items: center;
-  max-width: 1440px; /* 与main容器的max-width相同 */
-  width: 100%;
-  padding: 10px 24px 5px 24px; /* 与category和keyword标签容器保持一致 */
-  margin: 0 auto; /* 居中显示 */
-  position: relative;
-}
-
-.author-nav-label {
-  font-weight: 600;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-right: 8px; /* 减少右侧间距 */
-  white-space: nowrap;
-  min-width: 90px; /* 减少宽度从120px到90px */
-  letter-spacing: 0.3px; /* 减少字母间距 */
-  font-size: 14px; /* 减小字体大小 */
-  text-transform: uppercase;
-  opacity: 1; /* 增加不透明度 */
-  position: relative;
-  z-index: 1;
   padding-left: 3px; /* 减少左侧内边距 */
 }
 
-.author-scroll {
-  display: flex;
-  overflow-x: auto;
-  gap: 10px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  width: 100%;
-  justify-content: flex-start; /* 改为左对齐 */
-  flex-wrap: nowrap; /* 禁止换行 */
-  white-space: nowrap; /* 确保内容不会换行 */
-  /* 添加鼠标滚轮横向滚动支持 */
-  overflow-y: hidden;
-}
-
-.author-scroll::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
 
 .author-tag {
   display: inline-flex;
@@ -1765,7 +1806,7 @@ footer {
   background-color: var(--match-highlight);
   position: relative;
   z-index: 2;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.45);
 }
 
 .paper-card.matched-paper:hover {
@@ -2150,4 +2191,67 @@ footer {
   background: white;
   display: block;
   margin: 0 auto;
+}
+
+/* 回到顶部按钮样式 */
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border: none;
+  border-radius: 12px;
+  color: var(--primary-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  z-index: 1000;
+}
+
+.back-to-top:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.2);
+  background: var(--gradient-light);
+}
+
+.back-to-top:active {
+  transform: translateY(0);
+}
+
+.back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top svg {
+  transition: transform 0.2s ease;
+}
+
+.back-to-top:hover svg {
+  transform: translateY(-1px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .back-to-top {
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+  }
+  
+  .back-to-top svg {
+    width: 20px;
+    height: 20px;
+  }
 }

@@ -11,6 +11,23 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Authentication Scripts -->
+    <script src="js/auth-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Check authentication on page load
+        Auth.requireAuth();
+
+        // Show logout button only if password protection is enabled
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton && Auth.isPasswordEnabled()) {
+                logoutButton.style.display = '';
+            }
+        });
+    </script>
+
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             const errorDiv = document.createElement('div');
@@ -87,6 +104,11 @@
                             <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/>
                         </svg>
                     </a>
+                    <button id="logoutButton" onclick="Auth.logout()" class="icon-button" title="Logout" style="border: none; background: transparent; cursor: pointer; color: #e74c3c; display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.59L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
+                        </svg>
+                    </button>
                     <!-- <div class="view-controls">
                         <button id="toggleView" class="button">
                             <span class="view-icon">
@@ -107,18 +129,23 @@
                         <!-- 分类按钮将通过 JavaScript 动态生成 -->
                     </div>
                 </div>
-                <!-- Keyword Tag Container -->
-                <div class="keyword-label-container">
-                    <span class="keyword-nav-label">Keywords</span>
-                    <div class="keyword-scroll" id="keywordTags">
-                        <!-- Keywords will be dynamically added here -->
+                <!-- Filter Tag Container -->
+                <div class="filter-label-container">
+                    <span class="filter-nav-label">Filter</span>
+                    <!-- Text Search (magnifier-triggered) -->
+                    <div id="textSearchContainer" class="text-search">
+                        <button id="textSearchToggle" class="icon-button" title="Search">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10.5 3a7.5 7.5 0 105.07 13.07l3.68 3.68a1 1 0 001.41-1.41l-3.68-3.68A7.5 7.5 0 0010.5 3zm0 2a5.5 5.5 0 110 11 5.5 5.5 0 010-11z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                        <div class="search-input-wrapper" style="display: none;">
+                            <input id="textSearchInput" type="text" placeholder="Type to search..." aria-label="Search" />
+                            <button id="textSearchClear" class="clear-x" title="Clear" style="display: none;">×</button>
+                        </div>
                     </div>
-                </div>
-                <!-- Author Tag Container -->
-                <div class="author-label-container">
-                    <span class="author-nav-label">Authors</span>
-                    <div class="author-scroll" id="authorTags">
-                        <!-- Authors will be dynamically added here -->
+                    <div class="filter-scroll" id="filterTags">
+                        <!-- Authors and Keywords will be dynamically added here -->
                     </div>
                 </div>
             </div>
@@ -197,9 +224,16 @@
     
     <footer>
         <div class="footer-content">
-            <p>&copy; 2025 daily-arXiv-ai-enhanced | <a href="https://github.com/dw-dengwei/daily-arXiv-ai-enhanced" target="_blank">GitHub</a></p>
+            <p>&copy; 2025 daily-arXiv-ai-enhanced | 内容由AI生成，请仔细甄别。若发现不当内容，请通过Issue反应，我们将及时处理。 | The content is generated by AI, please carefully identify it. If you find any inappropriate content, please report it through the Issue and we will handle it in a timely manner. | <a href="https://github.com/dw-dengwei/daily-arXiv-ai-enhanced" target="_blank">GitHub</a></p>
         </div>
     </footer>
+
+    <!-- 回到顶部按钮 -->
+    <button id="backToTop" class="back-to-top" title="back to top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
 
     <script src="js/app.js?v=1.0.1"></script>
 </body>
