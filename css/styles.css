@@ -2255,3 +2255,59 @@ footer {
     height: 20px;
   }
 }
+
+/* GitHub Link Styles */
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: #f6f8fa;
+  color: #24292f;
+  border: 1px solid rgba(27, 31, 36, 0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.github-link:hover {
+  background-color: #f3f4f6;
+  text-decoration: none;
+  border-color: rgba(27, 31, 36, 0.15);
+}
+
+.github-link.hot-repo {
+  /* background-color: #fff8c5;  Removed yellow background */
+  border-color: rgba(27, 31, 36, 0.15);
+  color: #24292f;
+}
+
+.github-link.outdated-repo {
+  /* opacity: 0.7; Removed opacity */
+}
+
+.github-stars {
+  margin-left: 4px;
+  color: #57606a;
+}
+
+.hot-icon {
+  margin-left: 4px;
+}
+
+.warning-icon {
+  margin-left: 4px;
+}
+
+.paper-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+}
