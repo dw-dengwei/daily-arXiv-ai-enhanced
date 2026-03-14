@@ -4,7 +4,8 @@
 import argparse
 import os
 import smtplib
-from datetime import datetime
+import ssl
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from typing import List
 
@@ -51,7 +52,7 @@ def parse_recipients(value: str) -> List[str]:
 
 
 def build_body(date_str: str, report_text: str, source_text: str) -> str:
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     lines = [
         f"daily-arXiv 自动日报（{date_str}）",
         f"生成时间：{now}",
@@ -68,6 +69,37 @@ def build_body(date_str: str, report_text: str, source_text: str) -> str:
     return "\n".join(lines)
 
 
+def resolve_smtp_mode(smtp_port: int) -> str:
+    """
+    Resolve SMTP mode from env, with safe defaults:
+    - port 465 -> ssl
+    - other ports -> starttls
+    """
+    raw = get_env("SMTP_USE_SSL", "")
+    if raw:
+        val = raw.lower()
+        if val in {"1", "true", "yes", "y", "on"}:
+            return "ssl"
+        if val in {"0", "false", "no", "n", "off"}:
+            return "starttls"
+    return "ssl" if smtp_port == 465 else "starttls"
+
+
+def send_via_ssl(msg: EmailMessage, smtp_host: str, smtp_port: int, smtp_user: str, smtp_password: str) -> None:
+    with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30) as server:
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+
+
+def send_via_starttls(msg: EmailMessage, smtp_host: str, smtp_port: int, smtp_user: str, smtp_password: str) -> None:
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+
+
 def main() -> None:
     args = parse_args()
 
@@ -76,7 +108,7 @@ def main() -> None:
     smtp_user = get_env("SMTP_USER")
     smtp_password = get_env("SMTP_PASSWORD")
     smtp_from = get_env("SMTP_FROM", smtp_user)
-    use_ssl = get_env("SMTP_USE_SSL", "true").lower() not in {"0", "false", "no"}
+    smtp_mode = resolve_smtp_mode(smtp_port)
 
     to_value = get_env("REPORT_EMAIL_TO", args.default_to)
     recipients = parse_recipients(to_value)
@@ -110,17 +142,15 @@ def main() -> None:
             filename=os.path.basename(args.source_file),
         )
 
-    if use_ssl:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30) as server:
-            server.login(smtp_user, smtp_password)
-            server.send_message(msg)
+    if smtp_mode == "ssl":
+        try:
+            send_via_ssl(msg, smtp_host, smtp_port, smtp_user, smtp_password)
+        except ssl.SSLError as exc:
+            # Common case: wrong SSL mode/port combination (e.g. SSL on 25/587).
+            print(f"SSL failed ({exc}), retrying with STARTTLS...", flush=True)
+            send_via_starttls(msg, smtp_host, smtp_port, smtp_user, smtp_password)
     else:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(smtp_user, smtp_password)
-            server.send_message(msg)
+        send_via_starttls(msg, smtp_host, smtp_port, smtp_user, smtp_password)
 
     print(f"Email sent to: {', '.join(recipients)}")
 
