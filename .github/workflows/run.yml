@@ -172,6 +172,27 @@ jobs:
           python report/generate_keyword_report.py --date "$today" --output-dir report --generate-source-guide --source-guide-dir report/author_source_guides --max-source-papers 30
         fi
         echo "关键词日报生成完成 / Keyword daily report generated"
+
+    - name: Send daily report email
+      if: ${{ secrets.SMTP_HOST != '' && secrets.SMTP_USER != '' && secrets.SMTP_PASSWORD != '' }}
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+
+        export SMTP_HOST="${{ secrets.SMTP_HOST }}"
+        export SMTP_PORT="${{ vars.SMTP_PORT }}"
+        export SMTP_USER="${{ secrets.SMTP_USER }}"
+        export SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}"
+        export SMTP_FROM="${{ vars.SMTP_FROM }}"
+        export REPORT_EMAIL_TO="${{ vars.REPORT_EMAIL_TO }}"
+        export SMTP_USE_SSL="${{ vars.SMTP_USE_SSL }}"
+
+        python report/send_daily_email.py \
+          --date "$today" \
+          --report-file "report/${today}.md" \
+          --source-file "report/author_source_guides/${today}.md" \
+          --default-to "wangzhuoxuan@seu.edu.cn"
+        echo "邮件发送完成 / Daily email sent"
         
     - name: Update file list
       if: steps.dedup_check.outputs.has_new_content == 'true'
