@@ -174,18 +174,22 @@ jobs:
         echo "关键词日报生成完成 / Keyword daily report generated"
 
     - name: Send daily report email
-      if: ${{ secrets.SMTP_HOST != '' && secrets.SMTP_USER != '' && secrets.SMTP_PASSWORD != '' }}
+      env:
+        SMTP_HOST: ${{ secrets.SMTP_HOST }}
+        SMTP_PORT: ${{ vars.SMTP_PORT }}
+        SMTP_USER: ${{ secrets.SMTP_USER }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SMTP_FROM: ${{ vars.SMTP_FROM }}
+        REPORT_EMAIL_TO: ${{ vars.REPORT_EMAIL_TO }}
+        SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
       run: |
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
 
-        export SMTP_HOST="${{ secrets.SMTP_HOST }}"
-        export SMTP_PORT="${{ vars.SMTP_PORT }}"
-        export SMTP_USER="${{ secrets.SMTP_USER }}"
-        export SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}"
-        export SMTP_FROM="${{ vars.SMTP_FROM }}"
-        export REPORT_EMAIL_TO="${{ vars.REPORT_EMAIL_TO }}"
-        export SMTP_USE_SSL="${{ vars.SMTP_USE_SSL }}"
+        if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASSWORD" ]; then
+          echo "跳过邮件发送：SMTP_HOST/SMTP_USER/SMTP_PASSWORD 未完整配置 / Skip email: SMTP secrets missing"
+          exit 0
+        fi
 
         python report/send_daily_email.py \
           --date "$today" \
