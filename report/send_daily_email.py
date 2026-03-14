@@ -24,7 +24,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def get_env(name: str, default: str = "") -> str:
-    return os.environ.get(name, default).strip()
+    value = os.environ.get(name)
+    if value is None:
+        return default.strip()
+    value = value.strip()
+    return value if value else default.strip()
 
 
 def read_text_if_exists(path: str) -> str:
