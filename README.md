@@ -57,6 +57,37 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
 9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
 10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 
+## Supported LLM Providers
+
+The project supports multiple OpenAI-compatible LLM providers. You can switch providers by setting the corresponding API key environment variable (auto-detected), or explicitly via `LLM_PROVIDER`.
+
+| Provider | API Key Env | Default Model | Notes |
+|----------|-------------|---------------|-------|
+| [DeepSeek](https://platform.deepseek.com/) | `DEEPSEEK_API_KEY` | `deepseek-chat` | Default provider |
+| [MiniMax](https://www.minimaxi.com/) | `MINIMAX_API_KEY` | `MiniMax-M2.7` | 1M context, function calling |
+| [OpenAI](https://platform.openai.com/) | `OPENAI_API_KEY` | `gpt-4o` | Requires `OPENAI_BASE_URL` to be unset |
+
+### Using MiniMax
+
+[MiniMax](https://www.minimaxi.com/) provides high-quality, cost-effective models with OpenAI-compatible API. To use MiniMax:
+
+**Option A – Auto-detection (recommended):**
+```bash
+# Set MiniMax API key; provider and base URL are auto-configured
+export MINIMAX_API_KEY="your-minimax-api-key"
+# Optionally override the model (default: MiniMax-M2.7)
+export MODEL_NAME="MiniMax-M2.5-highspeed"   # 204K context, faster
+```
+
+**Option B – Manual configuration (GitHub Actions secrets):**
+```
+OPENAI_API_KEY   = your-minimax-api-key
+OPENAI_BASE_URL  = https://api.minimax.io/v1
+MODEL_NAME       = MiniMax-M2.7
+```
+
+Available MiniMax models: `MiniMax-M2.7` (latest, 1M context), `MiniMax-M2.5`, `MiniMax-M2.5-highspeed` (204K context, faster).
+
 # Plans
 See https://github.com/users/dw-dengwei/projects/3
 
