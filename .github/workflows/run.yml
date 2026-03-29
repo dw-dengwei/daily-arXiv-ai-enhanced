@@ -188,9 +188,3 @@ jobs:
         from: "arXiv AI Assistant"
         body: "今日关于黎曼几何与随机分析的论文总结已生成，请查看附件。"
         attachments: data/*.md
-
-    - name: Push to WeChat (ServerChan)
-      if: steps.dedup_check.outputs.has_new_content == 'true' && secrets.SCT_KEY != ''
-      run: |
-        curl -X POST "https://sctapi.ftqq.com/${{ secrets.SCT_KEY }}.send" \
-             -d "title=论文总结已更新&desp=日期: ${{ steps.crawl_step.outputs.crawl_date }}，请前往 GitHub 查看归档。"
