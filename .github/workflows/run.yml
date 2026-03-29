@@ -2,9 +2,9 @@ name: arXiv-daily-ai-enhanced
 
 on:
   schedule:
-    - cron: "30 1 * * *" # 北京时间每天上午 9:30 自动运行
+    - cron: "30 1 * * *" # 北京时间每天上午 9:30 运行
   workflow_dispatch:
-    # --- 手动控制面板（增强版） ---
+    # --- 手动控制面板：支持临时更换模型和账号 ---
     inputs:
       enable_ai:
         description: '是否开启 AI 总结？'
@@ -12,22 +12,22 @@ on:
         type: boolean
         default: true
       force_run:
-        description: '是否强制运行？(无视去重检查)'
+        description: '是否强制运行？(勾选则无视去重检查)'
         required: true
         type: boolean
         default: false
       manual_model_name:
-        description: '【可选】手动指定 AI 模型 (如 deepseek-chat 或 gpt-4o)'
+        description: '【可选】手动指定 AI 模型 (如 deepseek-chat)'
         required: false
         type: string
         default: ''
       manual_api_key:
-        description: '【可选】临时 API Key (留空则使用 Secrets 中的配置)'
+        description: '【可选】临时 API Key (留空则使用 Secrets)'
         required: false
         type: string
         default: ''
       manual_base_url:
-        description: '【可选】临时 Base URL (如 https://api.deepseek.com/v1)'
+        description: '【可选】临时 Base URL'
         required: false
         type: string
         default: ''
@@ -55,8 +55,9 @@ jobs:
         today=$(date -u "+%Y-%m-%d")
         echo "开始爬取 $today 的arXiv论文..."
         rm -f data/${today}.jsonl
+        
         cd daily_arxiv
-        # 优先使用手动输入的变量，如果为空则回退到 Secrets/Vars
+        # 注入环境变量：优先使用手动输入，否则使用 Secrets
         export OPENAI_API_KEY="${{ github.event.inputs.manual_api_key || secrets.OPENAI_API_KEY }}"
         export OPENAI_BASE_URL="${{ github.event.inputs.manual_base_url || secrets.OPENAI_BASE_URL }}"
         export MODEL_NAME="${{ github.event.inputs.manual_model_name || vars.MODEL_NAME }}"
@@ -64,6 +65,7 @@ jobs:
         export CATEGORIES="${{ vars.CATEGORIES }}"
         
         scrapy crawl arxiv -o ../data/${today}.jsonl
+        
         if [ ! -f "../data/${today}.jsonl" ]; then
             echo "today_has_data=false" >> $GITHUB_OUTPUT
         else
@@ -76,7 +78,9 @@ jobs:
       run: |
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
+        # 核心研究领域关键词：黎曼几何、随机分析、最优传输
         KEYWORDS="Riemannian|Manifold|Stochastic|Brownian|Bessel|Wasserstein|Optimal Transport|McKean-Vlasov|Curvature|Ricci|Levi-Civita|Martingale|Girsanov|DDSDE|Distribution Dependent"
+        
         python -c "
         import json, os, re
         input_file = 'data/${today}.jsonl'
@@ -91,7 +95,7 @@ jobs:
                 if pattern.search(text):
                     out.write(json.dumps(data) + '\n')
                     count += 1
-            print(f'✅ 过滤完成：提取了 {count} 篇论文。')
+            print(f'✅ 过滤完成：提取了 {count} 篇相关论文。')
         if os.path.exists(output_file):
             os.replace(output_file, input_file)
         "
@@ -124,12 +128,10 @@ jobs:
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
         cd ai
-        # 核心：手动输入逻辑注入
         export OPENAI_API_KEY="${{ github.event.inputs.manual_api_key || secrets.OPENAI_API_KEY }}"
         export OPENAI_BASE_URL="${{ github.event.inputs.manual_base_url || secrets.OPENAI_BASE_URL }}"
         export MODEL_NAME="${{ github.event.inputs.manual_model_name || vars.MODEL_NAME }}"
         export LANGUAGE="${{ vars.LANGUAGE }}"
-        
         python enhance.py --data ../data/${today}.jsonl
         
     - name: Convert to Markdown
@@ -146,7 +148,7 @@ jobs:
             python convert.py --data "../data/${today}.jsonl"
         fi
 
-    - name: Archive Summaries to My Folder
+    - name: Archive Summaries
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         ARCHIVE_DIR="Paper_Summaries/$(date +'%Y-%m')"
@@ -154,7 +156,7 @@ jobs:
         cp data/*.md "$ARCHIVE_DIR/" 2>/dev/null || true
         mkdir -p assets
         ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
-        
+
     - name: Commit and Push
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
@@ -172,3 +174,23 @@ jobs:
           git pull origin main --rebase
           if git push origin main; then break; fi
         done
+
+    - name: Send Mail (Gmail SMTP)
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: "🎓 论文速递: ${{ steps.crawl_step.outputs.crawl_date }}"
+        to: ${{ secrets.MAIL_USERNAME }}
+        from: "arXiv AI Assistant"
+        body: "今日关于黎曼几何与随机分析的论文总结已生成，请查看附件。"
+        attachments: data/*.md
+
+    - name: Push to WeChat (ServerChan)
+      if: steps.dedup_check.outputs.has_new_content == 'true' && secrets.SCT_KEY != ''
+      run: |
+        curl -X POST "https://sctapi.ftqq.com/${{ secrets.SCT_KEY }}.send" \
+             -d "title=论文总结已更新&desp=日期: ${{ steps.crawl_step.outputs.crawl_date }}，请前往 GitHub 查看归档。"
