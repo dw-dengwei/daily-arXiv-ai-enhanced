@@ -79,7 +79,7 @@ jobs:
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
         # 核心研究领域关键词：黎曼几何、随机分析、最优传输
-        KEYWORDS="Riemannian|Manifold|Stochastic|Brownian|Bessel|Wasserstein|Optimal Transport|McKean-Vlasov|Curvature|Ricci|Levi-Civita|Martingale|Girsanov|DDSDE|Distribution Dependent"
+        KEYWORDS="Riemannian|Manifold|Stochastic calculus|Brownian motion|Wasserstein|Optimal Transport|McKean-Vlasov|Curvature|Ricci|Martingale|Girsanov|DDSDE|Bismut|Distribution Dependent"
         
         python -c "
         import json, os, re
