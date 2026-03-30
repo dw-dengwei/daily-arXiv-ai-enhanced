@@ -43,7 +43,6 @@ jobs:
         rm -f data/${today}.jsonl
         
         cd daily_arxiv
-        # 注入环境变量：优先使用输入，否则使用 Secrets
         export OPENAI_API_KEY="${{ github.event.inputs.manual_api_key || secrets.OPENAI_API_KEY }}"
         export OPENAI_BASE_URL="${{ github.event.inputs.manual_base_url || secrets.OPENAI_BASE_URL }}"
         export MODEL_NAME="${{ github.event.inputs.manual_model_name || vars.MODEL_NAME }}"
@@ -69,7 +68,6 @@ jobs:
         input_file = f'data/{os.environ.get(\"today\", \"$today\")}.jsonl'
         output_file = f'data/{os.environ.get(\"today\", \"$today\")}_filtered.jsonl'
         
-        # 从环境变量中安全读取关键词
         keywords = os.environ.get('KEYWORDS', '')
         pattern = re.compile(keywords, re.IGNORECASE)
         
@@ -82,7 +80,6 @@ jobs:
             for line in f:
                 try:
                     data = json.loads(line)
-                    # 组合标题和摘要进行全文搜索
                     content = (data.get('title', '') + ' ' + data.get('abstract', ''))
                     if pattern.search(content):
                         out.write(json.dumps(data) + '\n')
@@ -90,7 +87,6 @@ jobs:
                 except Exception as e:
                     print(f'解析行出错: {e}')
                     
-        # 写入 GitHub Output 供后续步骤使用
         with open(os.environ['GITHUB_OUTPUT'], 'a') as go:
             go.write(f'paper_count={count}\n')
             
@@ -103,7 +99,6 @@ jobs:
       id: dedup_check
       if: steps.crawl_step.outputs.today_has_data == 'true'
       run: |
-        # 如果手动开启 force_run 或者 过滤后的论文数大于 0，则继续
         if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
             echo "has_new_content=true" >> $GITHUB_OUTPUT
         elif [ "${{ steps.filter_step.outputs.paper_count }}" -eq 0 ]; then
@@ -142,7 +137,6 @@ jobs:
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
         cd to_md
-        # 增加容错：如果 AI 增强文件不存在，则回退到原始文件
         AI_FILE="../data/${today}_AI_enhanced_${{ vars.LANGUAGE || 'zh' }}.jsonl"
         if [ -f "$AI_FILE" ]; then
             python convert.py --data "$AI_FILE"
@@ -162,7 +156,6 @@ jobs:
     - name: Commit and Push
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
-        # 使用变量，如果未配置则使用默认机器人身份
         git config --global user.email "${{ vars.EMAIL || 'github-actions[bot]@users.noreply.github.com' }}"
         git config --global user.name "${{ vars.NAME || 'github-actions[bot]' }}"
         
@@ -192,10 +185,10 @@ jobs:
         from: "arXiv AI Assistant <${{ secrets.MAIL_USERNAME }}>"
         body: |
           你好！
-          
+
           今日为您筛选了 ${{ steps.filter_step.outputs.paper_count }} 篇与黎曼几何、随机分析及分布依赖型 SDE (DDSDE) 相关的最新论文。
-          
+
           详细的 AI 总结与 Markdown 报告已生成并同步至仓库。
-          
+
           祝研究顺利！
         attachments: data/*.md
