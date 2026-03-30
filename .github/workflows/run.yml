@@ -190,7 +190,7 @@ jobs:
         subject: "🎓 arXiv 论文速递 [${{ steps.filter_step.outputs.paper_count }} 篇]: ${{ steps.crawl_step.outputs.crawl_date }}"
         to: ${{ secrets.MAIL_USERNAME }}
         from: "arXiv AI Assistant <${{ secrets.MAIL_USERNAME }}>"
-      body: |
+        body: |
           你好！
           
           今日为您筛选了 ${{ steps.filter_step.outputs.paper_count }} 篇与黎曼几何、随机分析及分布依赖型 SDE (DDSDE) 相关的最新论文。
@@ -198,4 +198,4 @@ jobs:
           详细的 AI 总结与 Markdown 报告已生成并同步至仓库。
           
           祝研究顺利！
-        attachments: data/*.md
+       attachments: data/*.md
