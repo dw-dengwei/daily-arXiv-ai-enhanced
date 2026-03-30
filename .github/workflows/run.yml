@@ -1,15 +1,10 @@
-name: arXiv-daily-ai-enhanced
+name: arXiv-daily-link-delivery
 
 on:
   schedule:
-    - cron: "30 1 * * *" # 北京时间每天上午 9:30 运行
+    - cron: "30 1 * * *" # 北京时间每天上午 9:30
   workflow_dispatch:
     inputs:
-      enable_ai:
-        description: '是否开启 AI 总结？'
-        required: true
-        type: boolean
-        default: true
       force_run:
         description: '是否强制运行？'
         required: true
@@ -21,34 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      # 核心研究领域关键词：支持空格、连字符和大小写模糊匹配
+      # 你的核心研究领域关键词
       KEYWORDS: "Riemannian|Manifold|Stochastic|Brownian motion|Wasserstein|Optimal Transport|McKean|Curvature|Ricci|Martingale|Girsanov|DDSDE|Bismut|Distribution[ -]Dependent"
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: Install dependencies
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         uv sync
-        
+
     - name: Crawl arXiv papers
       id: crawl_step
       run: |
         source .venv/bin/activate
         today=$(date -u "+%Y-%m-%d")
-        echo "开始爬取 $today 的 arXiv 论文..."
-        rm -f data/${today}.jsonl
-        
         cd daily_arxiv
-        export OPENAI_API_KEY="${{ github.event.inputs.manual_api_key || secrets.OPENAI_API_KEY }}"
-        export OPENAI_BASE_URL="${{ github.event.inputs.manual_base_url || secrets.OPENAI_BASE_URL }}"
-        export MODEL_NAME="${{ github.event.inputs.manual_model_name || vars.MODEL_NAME }}"
-        
         scrapy crawl arxiv -o ../data/${today}.jsonl
-        
         if [ ! -f "../data/${today}.jsonl" ]; then
             echo "today_has_data=false" >> $GITHUB_OUTPUT
         else
@@ -56,7 +41,7 @@ jobs:
             echo "crawl_date=$today" >> $GITHUB_OUTPUT
         fi
 
-    - name: Hardcore Keyword Filtering
+    - name: Generate Link Report
       id: filter_step
       if: steps.crawl_step.outputs.today_has_data == 'true'
       run: |
@@ -66,112 +51,37 @@ jobs:
         python -c "
         import json, os, re
         input_file = f'data/{os.environ.get(\"today\", \"$today\")}.jsonl'
-        output_file = f'data/{os.environ.get(\"today\", \"$today\")}_filtered.jsonl'
-        
         keywords = os.environ.get('KEYWORDS', '')
         pattern = re.compile(keywords, re.IGNORECASE)
         
-        if not os.path.exists(input_file):
-            print('未找到输入文件')
-            exit(0)
-            
         count = 0
-        with open(input_file, 'r') as f, open(output_file, 'w') as out:
-            for line in f:
-                try:
+        mail_content = ''
+        
+        if os.path.exists(input_file):
+            with open(input_file, 'r') as f:
+                for line in f:
                     data = json.loads(line)
-                    content = (data.get('title', '') + ' ' + data.get('abstract', ''))
-                    if pattern.search(content):
-                        out.write(json.dumps(data) + '\n')
-                        count += 1
-                except Exception as e:
-                    print(f'解析行出错: {e}')
+                    title = data.get('title', '').replace('\n', ' ')
+                    abstract = data.get('abstract', '')
+                    pdf_url = data.get('pdf_url', '')
                     
+                    if pattern.search(title + ' ' + abstract):
+                        count += 1
+                        # 拼接邮件正文条目
+                        mail_content += f'### {count}. {title}\n'
+                        mail_content += f'- **PDF Link**: {pdf_url}\n'
+                        mail_content += f'- **Abstract**: {abstract[:300]}...\n\n---\n\n'
+        
+        # 将生成的 HTML/Text 内容写入临时文件供邮件插件读取
+        with open('mail_body.txt', 'w') as bf:
+            bf.write(f'今日为您筛选了 {count} 篇相关论文：\n\n' + mail_content)
+            
         with open(os.environ['GITHUB_OUTPUT'], 'a') as go:
             go.write(f'paper_count={count}\n')
-            
-        if os.path.exists(output_file):
-            os.replace(output_file, input_file)
-        print(f'✅ 过滤完成：提取了 {count} 篇匹配论文。')
         "
 
-    - name: Check for duplicates
-      id: dedup_check
-      if: steps.crawl_step.outputs.today_has_data == 'true'
-      run: |
-        if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
-            echo "has_new_content=true" >> $GITHUB_OUTPUT
-        elif [ "${{ steps.filter_step.outputs.paper_count }}" -eq 0 ]; then
-            echo "has_new_content=false" >> $GITHUB_OUTPUT
-        else
-            source .venv/bin/activate
-            cd daily_arxiv
-            set +e
-            python daily_arxiv/check_stats.py
-            dedup_exit_code=$?
-            set -e
-            if [ $dedup_exit_code -eq 0 ]; then
-                echo "has_new_content=true" >> $GITHUB_OUTPUT
-            else
-                echo "has_new_content=false" >> $GITHUB_OUTPUT
-            fi
-        fi
-        
-    - name: AI Enhancement Processing
-      if: |
-        steps.dedup_check.outputs.has_new_content == 'true' && 
-        (github.event_name == 'schedule' || github.event.inputs.enable_ai == 'true')
-      run: |
-        source .venv/bin/activate
-        today=${{ steps.crawl_step.outputs.crawl_date }}
-        cd ai
-        export OPENAI_API_KEY="${{ github.event.inputs.manual_api_key || secrets.OPENAI_API_KEY }}"
-        export OPENAI_BASE_URL="${{ github.event.inputs.manual_base_url || secrets.OPENAI_BASE_URL }}"
-        export MODEL_NAME="${{ github.event.inputs.manual_model_name || vars.MODEL_NAME }}"
-        python enhance.py --data ../data/${today}.jsonl
-        
-    - name: Convert to Markdown
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        source .venv/bin/activate
-        today=${{ steps.crawl_step.outputs.crawl_date }}
-        cd to_md
-        AI_FILE="../data/${today}_AI_enhanced_${{ vars.LANGUAGE || 'zh' }}.jsonl"
-        if [ -f "$AI_FILE" ]; then
-            python convert.py --data "$AI_FILE"
-        else
-            python convert.py --data "../data/${today}.jsonl"
-        fi
-
-    - name: Archive Summaries
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        ARCHIVE_DIR="Paper_Summaries/$(date +'%Y-%m')"
-        mkdir -p "$ARCHIVE_DIR"
-        cp data/*.md "$ARCHIVE_DIR/" 2>/dev/null || true
-        mkdir -p assets
-        ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
-
-    - name: Commit and Push
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        git config --global user.email "${{ vars.EMAIL || 'github-actions[bot]@users.noreply.github.com' }}"
-        git config --global user.name "${{ vars.NAME || 'github-actions[bot]' }}"
-        
-        git add Paper_Summaries/ assets/file-list.txt js/data-config.js 2>/dev/null || true
-        if git diff --staged --quiet; then
-          echo "No changes."
-        else
-          git commit -m "archive: research update $(date +'%Y-%m-%d') [${{ steps.filter_step.outputs.paper_count }} papers]"
-          for i in {1..3}; do
-            git pull origin main --rebase
-            if git push origin main; then break; fi
-            sleep 5
-          done
-        fi
-
     - name: Send Mail (Gmail SMTP)
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.filter_step.outputs.paper_count != '0'
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
@@ -179,16 +89,8 @@ jobs:
         secure: true
         username: ${{ secrets.MAIL_USERNAME }}
         password: ${{ secrets.MAIL_PASSWORD }}
-        subject: "🎓 arXiv 论文速递 [${{ steps.filter_step.outputs.paper_count }} 篇]: ${{ steps.crawl_step.outputs.crawl_date }}"
+        subject: "🎓 arXiv 论文速递: 今日匹配 ${{ steps.filter_step.outputs.paper_count }} 篇"
         to: ${{ secrets.MAIL_USERNAME }}
-        from: "arXiv AI Assistant <${{ secrets.MAIL_USERNAME }}>"
-        body: |
-          你好！
-
-          今日为您筛选了 ${{ steps.filter_step.outputs.paper_count }} 篇与黎曼几何、随机分析及分布依赖型 SDE 相关的最新论文。
-
-          详细的 AI 总结与 Markdown 报告已生成并同步至仓库。
-
-          祝研究顺利！
-        attachments: |
-          data/*.md
+        from: "arXiv Link Bot <${{ secrets.MAIL_USERNAME }}>"
+        # 关键修改：直接读取生成的文本文件作为正文
+        body_from_file: mail_body.txt
