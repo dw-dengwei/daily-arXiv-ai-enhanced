@@ -2,7 +2,7 @@ name: arXiv-daily-link-delivery
 
 on:
   schedule:
-    - cron: "30 1 * * *" # 北京时间每天上午 9:30
+    - cron: "30 1 * * *"
   workflow_dispatch:
     inputs:
       force_run:
@@ -14,13 +14,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      # 你的核心研究领域关键词
       KEYWORDS: "Riemannian|Manifold|Stochastic|Brownian motion|Wasserstein|Optimal Transport|McKean|Curvature|Ricci|Martingale|Girsanov|DDSDE|Bismut|Distribution[ -]Dependent"
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -48,6 +48,7 @@ jobs:
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
         
+        # 使用 Python 生成多行内容并写入 $GITHUB_ENV
         python -c "
         import json, os, re
         input_file = f'data/{os.environ.get(\"today\", \"$today\")}.jsonl'
@@ -55,7 +56,7 @@ jobs:
         pattern = re.compile(keywords, re.IGNORECASE)
         
         count = 0
-        mail_content = ''
+        mail_content = '你好！今日为您筛选了相关论文：\n\n'
         
         if os.path.exists(input_file):
             with open(input_file, 'r') as f:
@@ -67,14 +68,14 @@ jobs:
                     
                     if pattern.search(title + ' ' + abstract):
                         count += 1
-                        # 拼接邮件正文条目
-                        mail_content += f'### {count}. {title}\n'
-                        mail_content += f'- **PDF Link**: {pdf_url}\n'
-                        mail_content += f'- **Abstract**: {abstract[:300]}...\n\n---\n\n'
+                        mail_content += f'{count}. {title}\n'
+                        mail_content += f'   PDF: {pdf_url}\n\n'
         
-        # 将生成的 HTML/Text 内容写入临时文件供邮件插件读取
-        with open('mail_body.txt', 'w') as bf:
-            bf.write(f'今日为您筛选了 {count} 篇相关论文：\n\n' + mail_content)
+        # 安全地将多行字符串写入环境变量
+        with open(os.environ['GITHUB_ENV'], 'a') as env_file:
+            env_file.write('MAIL_BODY<<EOF\n')
+            env_file.write(mail_content)
+            env_file.write('\nEOF\n')
             
         with open(os.environ['GITHUB_OUTPUT'], 'a') as go:
             go.write(f'paper_count={count}\n')
@@ -89,8 +90,8 @@ jobs:
         secure: true
         username: ${{ secrets.MAIL_USERNAME }}
         password: ${{ secrets.MAIL_PASSWORD }}
-        subject: "🎓 arXiv 论文速递: 今日匹配 ${{ steps.filter_step.outputs.paper_count }} 篇"
+        subject: "🎓 arXiv 论文直链推送 [${{ steps.filter_step.outputs.paper_count }} 篇]"
         to: ${{ secrets.MAIL_USERNAME }}
         from: "arXiv Link Bot <${{ secrets.MAIL_USERNAME }}>"
-        # 关键修改：直接读取生成的文本文件作为正文
-        body_from_file: mail_body.txt
+        # 修复：引用上一步生成的环境变量
+        body: ${{ env.MAIL_BODY }}
