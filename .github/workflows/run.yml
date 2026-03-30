@@ -198,4 +198,4 @@ jobs:
           详细的 AI 总结与 Markdown 报告已生成并同步至仓库。
           
           祝研究顺利！
-       attachments: data/*.md
+        attachments: data/*.md
