@@ -92,7 +92,7 @@ jobs:
             
         if os.path.exists(output_file):
             os.replace(output_file, input_file)
-        print(f'✅ 过滤完成：在今日论文中提取了 {count} 篇匹配论文。')
+        print(f'✅ 过滤完成：提取了 {count} 篇匹配论文。')
         "
 
     - name: Check for duplicates
@@ -103,7 +103,6 @@ jobs:
             echo "has_new_content=true" >> $GITHUB_OUTPUT
         elif [ "${{ steps.filter_step.outputs.paper_count }}" -eq 0 ]; then
             echo "has_new_content=false" >> $GITHUB_OUTPUT
-            echo "今日无匹配关键词的论文，停止后续 AI 处理。"
         else
             source .venv/bin/activate
             cd daily_arxiv
@@ -161,7 +160,7 @@ jobs:
         
         git add Paper_Summaries/ assets/file-list.txt js/data-config.js 2>/dev/null || true
         if git diff --staged --quiet; then
-          echo "没有新变动需要提交"
+          echo "No changes."
         else
           git commit -m "archive: research update $(date +'%Y-%m-%d') [${{ steps.filter_step.outputs.paper_count }} papers]"
           for i in {1..3}; do
@@ -186,7 +185,7 @@ jobs:
         body: |
           你好！
 
-          今日为您筛选了 ${{ steps.filter_step.outputs.paper_count }} 篇与黎曼几何、随机分析及分布依赖型 SDE (DDSDE) 相关的最新论文。
+          今日为您筛选了 ${{ steps.filter_step.outputs.paper_count }} 篇与黎曼几何、随机分析及分布依赖型 SDE 相关的最新论文。
 
           详细的 AI 总结与 Markdown 报告已生成并同步至仓库。
 
