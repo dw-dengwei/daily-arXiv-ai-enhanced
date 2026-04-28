@@ -15,7 +15,10 @@ if [ ! -f ".env" ]; then
 fi
 
 # Load environment variables from .env
-export $(cat .env | grep -v '^#' | grep -v '^$' | xargs)
+set -a
+# shellcheck disable=SC1091
+source ".env"
+set +a
 
 # Check if ACCESS_PASSWORD is set
 if [ -z "$ACCESS_PASSWORD" ]; then
@@ -67,5 +70,6 @@ echo ""
 echo "💡 Tips:"
 echo "  - Open login.html in browser to test"
 echo "  - Use password from .env to login"
-echo "  - auth-config.js is gitignored and won't be committed"
+echo "  - auth-config.js.backup preserves the original local value"
+echo "  - Review js/auth-config.js before committing local password changes"
 echo ""

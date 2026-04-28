@@ -8,6 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+.env
 ai/.env
 test/*
 .idea/
@@ -17,3 +18,7 @@ package-lock.json
 yarn.lock
 .DS_Store
 package.json
+data/*.jsonl
+data/*.md
+assets/file-list.txt
+js/auth-config.js.backup

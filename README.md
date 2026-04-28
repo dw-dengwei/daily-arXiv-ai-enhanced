@@ -64,6 +64,93 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
 9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
 10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 
+# Local/LAN deployment
+
+This repository can also run as a local website on your own machine and be shared with other devices on the same LAN.
+
+## 1. Install dependencies
+
+This project uses `uv` and Python 3.12+:
+
+```bash
+uv sync
+```
+
+## 2. Create a local environment file
+
+Use the provided example and fill in your own values:
+
+```bash
+cp .env.example .env
+```
+
+Required for full AI enhancement:
+
+- `OPENAI_API_KEY`
+
+Common local options:
+
+- `OPENAI_BASE_URL`
+- `LANGUAGE`
+- `CATEGORIES`
+- `MODEL_NAME`
+- `ACCESS_PASSWORD` for lightweight page protection
+
+## 3. Generate local data files
+
+Run the local pipeline once to create `data/*.jsonl` and `assets/file-list.txt`:
+
+```bash
+./run.sh
+```
+
+The script will:
+
+- load values from `.env` automatically when present
+- create missing `data/` and `assets/` directories
+- support a partial mode when `OPENAI_API_KEY` is not configured
+
+## 4. Optional: enable lightweight password protection
+
+If you set `ACCESS_PASSWORD` in `.env`, generate the local password hash with:
+
+```bash
+./setup-local-auth.sh
+```
+
+This is still a front-end-only protection mechanism based on hashed password comparison and `localStorage`. It is acceptable for lightweight home or office LAN usage, but it is not a replacement for real server-side authentication.
+
+## 5. Start the local website service
+
+Serve the current repository over HTTP so the browser can fetch local `data/` files:
+
+```bash
+python serve_local.py --host 0.0.0.0 --port 8000
+```
+
+Then open one of the printed addresses:
+
+- `http://127.0.0.1:8000` on the same machine
+- `http://<your-lan-ip>:8000` from another device on the same network
+
+## 6. Update papers regularly
+
+You can refresh data manually any time by rerunning:
+
+```bash
+./run.sh
+```
+
+For scheduled updates on macOS, prefer `launchd`. A simple alternative is `cron`.
+
+Example `cron` entry:
+
+```cron
+0 9 * * * cd /absolute/path/to/daily-arXiv-ai-enhanced && /bin/bash ./run.sh >> /tmp/daily-arxiv.log 2>&1
+```
+
+If you use `launchd`, schedule the same `run.sh` command and keep the website process (`serve_local.py`) running separately.
+
 # Plans
 See https://github.com/users/dw-dengwei/projects/3
 

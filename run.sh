@@ -1,19 +1,46 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # 本地测试脚本 / Local testing script
 # 主要工作流已迁移到 GitHub Actions (.github/workflows/run.yml)
 # Main workflow has been migrated to GitHub Actions (.github/workflows/run.yml)
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ -f ".env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source ".env"
+    set +a
+fi
+
+if [ -d ".venv" ]; then
+    # shellcheck disable=SC1091
+    source ".venv/bin/activate"
+fi
+
+if command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+else
+    PYTHON_BIN="python3"
+fi
+
+mkdir -p data assets
+: > assets/file-list.txt
+
 # 环境变量检查和提示 / Environment variables check and prompt
 echo "=== 本地调试环境检查 / Local Debug Environment Check ==="
-if [ -z "$TOKEN_GITHUB" ]; then
+if [ -z "${TOKEN_GITHUB:-}" ]; then
     echo "⚠️  提示：未设置 TOKEN_GITHUB / Warning: TOKEN_GITHUB not set"
     echo "可能导致 GitHub 相关功能受限 / May limit GitHub related functionalities"
-fi
+else
     echo "✅ TOKEN_GITHUB 已设置 / TOKEN_GITHUB is set"
+fi
 
 # 检查必需的环境变量 / Check required environment variables
-if [ -z "$OPENAI_API_KEY" ]; then
+if [ -z "${OPENAI_API_KEY:-}" ]; then
     echo "⚠️  提示：未设置 OPENAI_API_KEY / Warning: OPENAI_API_KEY not set"
     echo "📝 要进行完整本地调试，请设置以下环境变量 / For complete local debugging, please set the following environment variables:"
     echo ""
@@ -29,7 +56,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo "💡 设置后重新运行此脚本即可进行完整测试 / After setting, rerun this script for complete testing"
     echo "🚀 或者继续运行部分流程（爬取+去重检查）/ Or continue with partial workflow (crawl + dedup check)"
     echo ""
-    read -p "继续部分流程？(y/N) / Continue with partial workflow? (y/N): " continue_partial
+    read -r -p "继续部分流程？(y/N) / Continue with partial workflow? (y/N): " continue_partial
     if [[ ! $continue_partial =~ ^[Yy]$ ]]; then
         echo "退出脚本 / Exiting script"
         exit 0
@@ -38,13 +65,13 @@ if [ -z "$OPENAI_API_KEY" ]; then
 else
     echo "✅ OPENAI_API_KEY 已设置 / OPENAI_API_KEY is set"
     PARTIAL_MODE=false
-    
+
     # 设置默认值 / Set default values
     export LANGUAGE="${LANGUAGE:-Chinese}"
     export CATEGORIES="${CATEGORIES:-cs.CV, cs.CL}"
     export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
-    
+
     echo "🔧 当前配置 / Current configuration:"
     echo "   LANGUAGE: $LANGUAGE"
     echo "   CATEGORIES: $CATEGORIES"
@@ -56,7 +83,7 @@ echo ""
 echo "=== 开始本地调试流程 / Starting Local Debug Workflow ==="
 
 # 获取当前日期 / Get current date
-today=`date -u "+%Y-%m-%d"`
+today=$(date -u "+%Y-%m-%d")
 
 echo "本地测试：爬取 $today 的arXiv论文... / Local test: Crawling $today arXiv papers..."
 
@@ -73,17 +100,19 @@ else
 fi
 
 cd daily_arxiv
-scrapy crawl arxiv -o ../data/${today}.jsonl
+"$PYTHON_BIN" -m scrapy crawl arxiv -o "../data/${today}.jsonl"
 
 if [ ! -f "../data/${today}.jsonl" ]; then
     echo "爬取失败，未生成数据文件 / Crawling failed, no data file generated"
     exit 1
 fi
 
-# 第二步：检查去重 / Step 2: Check duplicates  
+# 第二步：检查去重 / Step 2: Check duplicates
 echo "步骤2：执行去重检查... / Step 2: Performing intelligent deduplication check..."
-python daily_arxiv/check_stats.py
+set +e
+"$PYTHON_BIN" daily_arxiv/check_stats.py
 dedup_exit_code=$?
+set -e
 
 case $dedup_exit_code in
     0)
@@ -109,12 +138,8 @@ cd ..
 if [ "$PARTIAL_MODE" = "false" ]; then
     echo "步骤3：AI增强处理... / Step 3: AI enhancement processing..."
     cd ai
-    python enhance.py --data ../data/${today}.jsonl
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ AI处理失败 / AI processing failed"
-        exit 1
-    fi
+    "$PYTHON_BIN" enhance.py --data "../data/${today}.jsonl"
+
     echo "✅ AI增强处理完成 / AI enhancement processing completed"
     cd ..
 else
@@ -127,14 +152,8 @@ cd to_md
 
 if [ "$PARTIAL_MODE" = "false" ] && [ -f "../data/${today}_AI_enhanced_${LANGUAGE}.jsonl" ]; then
     echo "📄 使用AI增强后的数据进行转换... / Using AI enhanced data for conversion..."
-    python convert.py --data ../data/${today}_AI_enhanced_${LANGUAGE}.jsonl
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ Markdown转换失败 / Markdown conversion failed"
-        exit 1
-    fi
+    "$PYTHON_BIN" convert.py --data "../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
     echo "✅ AI增强版Markdown转换完成 / AI enhanced Markdown conversion completed"
-    
 else
     if [ "$PARTIAL_MODE" = "true" ]; then
         echo "⏭️  跳过Markdown转换（部分模式，需要AI增强数据）/ Skipping Markdown conversion (partial mode, requires AI enhanced data)"
@@ -149,7 +168,14 @@ cd ..
 
 # 第五步：更新文件列表 / Step 5: Update file list
 echo "步骤5：更新文件列表... / Step 5: Updating file list..."
-ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+shopt -s nullglob
+jsonl_files=(data/*.jsonl)
+if [ ${#jsonl_files[@]} -eq 0 ]; then
+    : > assets/file-list.txt
+else
+    printf '%s\n' "${jsonl_files[@]#data/}" | sort > assets/file-list.txt
+fi
+shopt -u nullglob
 echo "✅ 文件列表更新完成 / File list updated"
 
 # 完成总结 / Completion summary

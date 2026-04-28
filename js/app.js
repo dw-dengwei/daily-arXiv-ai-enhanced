@@ -387,9 +387,30 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAvailableDates().then(() => {
     if (availableDates.length > 0) {
       loadPapersByDate(availableDates[0]);
+    } else {
+      showNoDataState('No local papers yet. Run ./run.sh to generate data.');
     }
   });
 });
+
+function showNoDataState(message) {
+  const currentDateElement = document.getElementById('currentDate');
+  if (currentDateElement) {
+    currentDateElement.textContent = 'No local data';
+  }
+
+  const container = document.getElementById('paperContainer');
+  if (container) {
+    container.innerHTML = `
+      <div class="loading-container">
+        <p>${message}</p>
+      </div>
+    `;
+  }
+
+  paperData = {};
+  renderCategoryFilter({ sortedCategories: [], categoryCounts: {} });
+}
 
 async function fetchGitHubStats() {
   try {
@@ -697,7 +718,7 @@ function selectLanguageForDate(date, preferredLanguage = null) {
 
 async function fetchAvailableDates() {
   try {
-    // 从 data 分支获取文件列表
+    // 读取当前站点下生成的数据文件列表
     const fileListUrl = DATA_CONFIG.getDataUrl('assets/file-list.txt');
     const response = await fetch(fileListUrl);
     if (!response.ok) {
@@ -730,6 +751,10 @@ async function fetchAvailableDates() {
     availableDates = [...new Set(dates)];
     availableDates.sort((a, b) => new Date(b) - new Date(a));
 
+    if (availableDates.length === 0) {
+      return [];
+    }
+
     initDatePicker(); // Assuming this function uses availableDates
 
     return availableDates;
@@ -739,6 +764,10 @@ async function fetchAvailableDates() {
 }
 
 function initDatePicker() {
+  if (availableDates.length === 0) {
+    return;
+  }
+
   const datepickerInput = document.getElementById('datepicker');
   
   if (flatpickrInstance) {
