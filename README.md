@@ -68,6 +68,8 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
 
 This repository can also run as a local website on your own machine and be shared with other devices on the same LAN.
 
+For a full deployment guide, including GitHub Pages and common troubleshooting, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## 1. Install dependencies
 
 This project uses `uv` and Python 3.12+:

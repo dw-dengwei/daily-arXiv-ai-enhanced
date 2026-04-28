@@ -7,6 +7,36 @@ set -e
 
 echo "🔐 Setting up local authentication..."
 
+load_env_file() {
+    local env_file="$1"
+    local line key value
+
+    [ -f "$env_file" ] || return 0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ -z "${line//[[:space:]]/}" || "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        if [[ "$line" != *=* ]]; then
+            continue
+        fi
+
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+
+        if [[ "$value" =~ ^\".*\"$ || "$value" =~ ^\'.*\'$ ]]; then
+            value="${value:1:${#value}-2}"
+        fi
+
+        export "$key=$value"
+    done < "$env_file"
+}
+
 # Check if .env file exists
 if [ ! -f ".env" ]; then
     echo "❌ Error: .env file not found!"
@@ -15,10 +45,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Load environment variables from .env
-set -a
-# shellcheck disable=SC1091
-source ".env"
-set +a
+load_env_file ".env"
 
 # Check if ACCESS_PASSWORD is set
 if [ -z "$ACCESS_PASSWORD" ]; then

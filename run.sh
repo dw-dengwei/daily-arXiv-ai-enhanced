@@ -9,23 +9,58 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+load_env_file() {
+    local env_file="$1"
+    local line key value
+
+    [ -f "$env_file" ] || return 0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ -z "${line//[[:space:]]/}" || "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        if [[ "$line" != *=* ]]; then
+            continue
+        fi
+
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+
+        if [[ "$value" =~ ^\".*\"$ || "$value" =~ ^\'.*\'$ ]]; then
+            value="${value:1:${#value}-2}"
+        fi
+
+        export "$key=$value"
+    done < "$env_file"
+}
+
 if [ -f ".env" ]; then
-    set -a
-    # shellcheck disable=SC1091
-    source ".env"
-    set +a
+    load_env_file ".env"
 fi
+
+RUN_WITH_UV=false
 
 if [ -d ".venv" ]; then
     # shellcheck disable=SC1091
     source ".venv/bin/activate"
+elif command -v uv >/dev/null 2>&1; then
+    RUN_WITH_UV=true
 fi
 
-if command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="python"
-else
-    PYTHON_BIN="python3"
-fi
+run_python() {
+    if [ "$RUN_WITH_UV" = "true" ]; then
+        uv run --python 3.12 python "$@"
+    elif command -v python >/dev/null 2>&1; then
+        python "$@"
+    else
+        python3 "$@"
+    fi
+}
 
 mkdir -p data assets
 : > assets/file-list.txt
@@ -100,7 +135,7 @@ else
 fi
 
 cd daily_arxiv
-"$PYTHON_BIN" -m scrapy crawl arxiv -o "../data/${today}.jsonl"
+run_python -m scrapy crawl arxiv -o "../data/${today}.jsonl"
 
 if [ ! -f "../data/${today}.jsonl" ]; then
     echo "爬取失败，未生成数据文件 / Crawling failed, no data file generated"
@@ -110,7 +145,7 @@ fi
 # 第二步：检查去重 / Step 2: Check duplicates
 echo "步骤2：执行去重检查... / Step 2: Performing intelligent deduplication check..."
 set +e
-"$PYTHON_BIN" daily_arxiv/check_stats.py
+run_python daily_arxiv/check_stats.py
 dedup_exit_code=$?
 set -e
 
@@ -138,7 +173,7 @@ cd ..
 if [ "$PARTIAL_MODE" = "false" ]; then
     echo "步骤3：AI增强处理... / Step 3: AI enhancement processing..."
     cd ai
-    "$PYTHON_BIN" enhance.py --data "../data/${today}.jsonl"
+    run_python enhance.py --data "../data/${today}.jsonl"
 
     echo "✅ AI增强处理完成 / AI enhancement processing completed"
     cd ..
@@ -152,7 +187,7 @@ cd to_md
 
 if [ "$PARTIAL_MODE" = "false" ] && [ -f "../data/${today}_AI_enhanced_${LANGUAGE}.jsonl" ]; then
     echo "📄 使用AI增强后的数据进行转换... / Using AI enhanced data for conversion..."
-    "$PYTHON_BIN" convert.py --data "../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+    run_python convert.py --data "../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
     echo "✅ AI增强版Markdown转换完成 / AI enhanced Markdown conversion completed"
 else
     if [ "$PARTIAL_MODE" = "true" ]; then
