@@ -117,8 +117,10 @@ fi
 echo ""
 echo "=== 开始本地调试流程 / Starting Local Debug Workflow ==="
 
-# 获取当前日期 / Get current date
-today=$(date -u "+%Y-%m-%d")
+# 获取当前本地日期 / Get current local date
+# Local runs should use the same date basis as check_stats.py to avoid
+# generating yesterday's filename after midnight in non-UTC timezones.
+today=$(date "+%Y-%m-%d")
 
 echo "本地测试：爬取 $today 的arXiv论文... / Local test: Crawling $today arXiv papers..."
 
