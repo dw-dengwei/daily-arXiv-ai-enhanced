@@ -50,6 +50,7 @@ OPENAI_BASE_URL=https://api.deepseek.com
 LANGUAGE=Chinese
 CATEGORIES=cs.CV, cs.CL, cs.TCS
 MODEL_NAME=deepseek-v4-pro
+DISABLE_SENSITIVE_CHECK=false
 ACCESS_PASSWORD=
 TOKEN_GITHUB=
 ```
@@ -59,6 +60,7 @@ Notes:
 - `OPENAI_API_KEY` is required for the full AI flow.
 - `OPENAI_BASE_URL` depends on your provider.
 - `CATEGORIES` can be written as `cs.CV, cs.CL, cs.TCS`.
+- `DISABLE_SENSITIVE_CHECK=true` is useful for local runs when the remote sensitive-check API is rate limited.
 - `ACCESS_PASSWORD` is optional and only used for lightweight front-end password protection.
 
 ### Step 2: Run the local pipeline
