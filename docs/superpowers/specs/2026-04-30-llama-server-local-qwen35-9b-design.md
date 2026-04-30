@@ -139,3 +139,47 @@
   - 论文详情可展示 5 段 AI 字段
 - 运行过程中无任何外部网络依赖（除 arXiv 抓取与 llama-server 本地请求外）。
 
+
+
+# 修改
+
+推荐方案（按你选的 B 落地）
+• 做成一个“本地 App/CLI”，提供 run 与 serve 两条命令
+• run 负责离线数据生产闭环；serve 只负责把静态站跑起来（默认 127.0.0.1:8000）
+• llama-server 支持两种模式：默认“仅连接检测”；可选“自动启动并托管生命周期”
+设计草案（仅本地离线版）
+
+1) 用户体验（CLI 形态）
+   • python -m local_arxiv run [--date YYYY-MM-DD] [--start-llama-server] [...]
+   ◦ 产出：data/<date>.jsonl、data/<date>_AI_enhanced_<LANG>.jsonl、assets/file-list.txt（以及现有 markdown 转换产物如需要）
+   ◦ 退出码：任一步失败非 0；控制台输出可定位错误（不打印任何密钥）
+   • python -m local_arxiv serve [--host 127.0.0.1] [--port 8000]
+   ◦ 行为：启动静态文件服务，页面只读本地相对路径（assets/file-list.txt、data/*.jsonl）
+   ◦ 默认：固定 127.0.0.1:8000；端口占用则报错并提示换端口
+2) 数据流（run 内部顺序）
+   • Crawl：抓取当天 arXiv 数据 → data/YYYY-MM-DD.jsonl
+   • Dedup：与历史窗口（例如过去 N 天）对比去重（可配置 N）
+   • Enhance：对每条 paper 的 abstract 调 llama-server /v1/chat/completions，强制 JSON 输出并做鲁棒解析，写入 AI 字段
+   • (可选) Convert：把增强后的 jsonl 转成现有站点需要的 md/结构（若前端依赖）
+   • Index：生成/更新 assets/file-list.txt，用于前端列出可用日期文件
+3) llama-server 处理（两种模式）
+   • 默认“仅连接”：
+   ◦ run 启动时检查 LLAMA_BASE_URL 可达、/v1/models 可返回、指定 LLAMA_MODEL 存在；不满足则立即失败退出
+   • 可选“自动启动”（--start-llama-server）：
+   ◦ run 接受 --llama-bin（llama-server 可执行文件）与 --gguf（模型路径）等参数
+   ◦ run 启动子进程后轮询健康检查，成功后再进入 Enhance
+   ◦ run 结束时（成功/失败/中断）都要负责关闭子进程（跨平台用 subprocess.Popen + terminate/kill 兜底）
+4) 前端本地化约束（serve 配套）
+   • 前端不再支持 GitHub raw / 线上模式：数据源统一为相对路径或 window.location.origin 下的本地文件
+   • assets/file-list.txt 格式固定：一行一个文件名（或相对路径），前端按此加载对应 data/*.jsonl
+5) 配置面（环境变量/参数边界）
+   • 必需（Enhance 阶段）：
+   ◦ LLAMA_BASE_URL（默认 http://127.0.0.1:8080/v1 ）
+   ◦ LLAMA_MODEL、LANGUAGE、MAX_TOKENS、TEMPERATURE
+   • 可选（run 参数）：
+   ◦ --date、--dedup-days N、--categories ...、--max-workers（默认 1 串行）
+6) 错误与验收
+   • 解析失败：保证每条记录仍写出 5 个 AI 字段（为空字符串占位），避免前端崩
+   • 验收标准：
+   ◦ run 能在离线环境（除 arXiv 抓取 + 本机 llama-server）产出完整文件
+   ◦ serve 启动后首页能加载日期列表并渲染包含 AI 字段的论文详情
