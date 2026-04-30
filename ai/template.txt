@@ -1,4 +1,13 @@
-Please analyze the following abstract of papers. 
+Analyze the following paper abstract and produce the required JSON output.
 
-Content:
+Abstract:
 {content}
+
+Output JSON schema:
+{
+  "tldr": "...",
+  "motivation": "...",
+  "method": "...",
+  "result": "...",
+  "conclusion": "..."
+}
