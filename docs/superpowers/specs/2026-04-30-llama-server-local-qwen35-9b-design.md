@@ -10,13 +10,12 @@
 - 全流程本地运行：抓取 → 去重 → AI 增强 → 生成文件列表 → 本地静态页面浏览。
 - AI 增强使用本地 `llama-server`：通过 `/v1/chat/completions` 调用，模型为 `Qwen3.5-9B-Q4_K_M.gguf`（可配置）。
 - 完全离线：移除外部敏感词检测网络请求与过滤逻辑。
-- 前端本地化：前端在 `localhost/127.0.0.1` 下仅从本地相对路径加载 `assets/file-list.txt` 与 `data/*.jsonl`。
-- 兼容性：保留原有远端数据分支模式的兼容能力（在非本地 host 时仍可走现有 GitHub raw 模式）。
+- 前端本地化：前端仅从本地相对路径加载 `assets/file-list.txt` 与 `data/*.jsonl`（不再支持 GitHub raw 数据源）。
 
 ### 非目标
 
 - 不追求严格复刻 OpenAI function/tool calling 结构化输出；改用“强制 JSON 输出 + 本地解析容错”。
-- 不在本次改造中实现并发推理优化（默认串行处理，保证稳定性）。
+- 不在本次改造中实现并发推理优化（默认串行处理，保证稳定性；可用 `--max-workers` 小规模并行）。
 - 不改变前端 UI/交互，仅调整数据源定位逻辑。
 
 ## 2. 当前系统简述（基线）
@@ -30,17 +29,14 @@
 
 ### 3.1 数据流
 
-1. `scrapy crawl arxiv -o data/YYYY-MM-DD.jsonl`
-2. `python daily_arxiv/check_stats.py`（对比过去 7 天，删除重复）
-3. `python ai/enhance.py --data data/YYYY-MM-DD.jsonl`
-4. `python to_md/convert.py --data data/YYYY-MM-DD_AI_enhanced_<LANG>.jsonl`
-5. 生成 `assets/file-list.txt`（列出 `data/*.jsonl`）
-6. 静态服务器启动后浏览：`index.html` / `statistic.html`
+1. `python -m local_arxiv run [--date YYYY-MM-DD] [--categories ...] [--language ...]`
+2. 内部顺序：Crawl（Scrapy）→ Dedup（过去 7 天窗口）→ Enhance（llama-server）→（可选 `--convert-md`）→ Index（生成 `assets/file-list.txt`）
+3. `python -m local_arxiv serve [--host 127.0.0.1] [--port 8000]` 后浏览：`index.html` / `statistic.html`
 
 ### 3.2 AI 调用方式（llama-server）
 
 - 服务地址：`LLAMA_BASE_URL`，默认 `http://127.0.0.1:8080/v1`
-- 可用模型：从 `GET /v1/models` 获取（用户已确认可用，model id 为 `Qwen3.5-9B-Q4_K_M.gguf`）
+- 可用模型：从 `GET /v1/models` 获取并校验（例如 `Qwen3.5-9B-Q4_K_M.gguf`）
 - 推理接口：`POST /v1/chat/completions`
 - 结构化输出策略：提示词强制模型输出严格 JSON（仅一个对象，必须包含 5 个字段）
 
@@ -48,7 +44,6 @@
 
 ### 4.1 配置项（环境变量）
 
-- `LLM_BACKEND`：固定使用 `llama_server`
 - `LLAMA_BASE_URL`：如 `http://127.0.0.1:8080/v1`
 - `LLAMA_MODEL`：如 `Qwen3.5-9B-Q4_K_M.gguf`
 - `LANGUAGE`：`Chinese` 或 `English`
@@ -83,17 +78,17 @@
 
 1. 直接 `json.loads(response_text)`
 2. 若失败：截取第一个 `{` 到最后一个 `}` 的子串再解析
-3. 若仍失败：进行轻量修复（去除尾随逗号、替换不合法控制字符）
-4. 若仍失败：写入默认占位值（保证前端渲染不崩）
+3. 若仍失败：进行轻量修复（去除尾随逗号、移除不合法控制字符）再解析
+4. 若仍失败：写入空字符串占位值（保证前端渲染不崩）
 
 缺字段处理：
 
-- 任何缺失字段使用默认占位补齐，确保 `AI` 字段总是包含五个 key。
+- 任何缺失字段使用空字符串补齐，确保 `AI` 字段总是包含五个 key。
 
 ### 4.4 敏感词检测移除
 
-- 删除外部网络检测逻辑（`https://spam.dw-dengwei.workers.dev`）。
-- 不再因敏感检测而过滤论文条目，保证纯离线。
+- 删除外部网络敏感词检测逻辑与过滤逻辑（不再调用 `https://spam.dw-dengwei.workers.dev`）。
+- 删除 GitHub API enrichment 逻辑（纯离线增强；不再依赖 `TOKEN_GITHUB`）。
 
 ## 5. 前端本地化实现细节
 
@@ -107,25 +102,21 @@
 
 修改 `js/data-config.js`：
 
-- 自动识别本地 host：
-  - `localhost`
-  - `127.0.0.1`
-- 本地模式：
-  - `getDataBaseUrl()` 返回 `window.location.origin`
-  - `getDataUrl(filePath)` 返回 `${origin}/${filePath}`
-- 非本地模式：保持现有 GitHub raw 逻辑，继续支持 data 分支远端拉取。
+- `getDataBaseUrl()` 固定返回 `window.location.origin`
+- `getDataUrl(filePath)` 固定返回 `${origin}/${filePath}`（确保 `assets/file-list.txt` 与 `data/*.jsonl` 始终为本地相对路径）
 
 ## 6. 本地一键流水线
 
-新增脚本 `scripts/local_pipeline.py`（无交互）：
+新增模块 `local_arxiv`（无交互 CLI）：
 
-- 输入：可选日期（默认 UTC 当天），分类、语言等从环境变量读取
-- 顺序执行：抓取、去重、AI 增强、转 md、生成 file-list
-- 失败策略：任何一步失败立即退出，并打印可定位的错误信息
+- 命令：`python -m local_arxiv run`
+- 输入：可选日期（默认 UTC 当天），分类、语言、llama-server 配置可通过参数或环境变量提供
+- 顺序执行：抓取、去重、AI 增强、（可选转 md）、生成 file-list
+- 失败策略：任何一步失败立即退出，并输出可定位错误信息（不打印密钥）
 
 本地服务启动方式：
 
-- 推荐：`python -m http.server 8000`
+- 推荐：`python -m local_arxiv serve`
 - 然后访问：`http://127.0.0.1:8000/`
 
 ## 7. 验收标准
@@ -138,48 +129,3 @@
   - 首页可加载日期列表并渲染论文
   - 论文详情可展示 5 段 AI 字段
 - 运行过程中无任何外部网络依赖（除 arXiv 抓取与 llama-server 本地请求外）。
-
-
-
-# 修改
-
-推荐方案（按你选的 B 落地）
-• 做成一个“本地 App/CLI”，提供 run 与 serve 两条命令
-• run 负责离线数据生产闭环；serve 只负责把静态站跑起来（默认 127.0.0.1:8000）
-• llama-server 支持两种模式：默认“仅连接检测”；可选“自动启动并托管生命周期”
-设计草案（仅本地离线版）
-
-1) 用户体验（CLI 形态）
-   • python -m local_arxiv run [--date YYYY-MM-DD] [--start-llama-server] [...]
-   ◦ 产出：data/<date>.jsonl、data/<date>_AI_enhanced_<LANG>.jsonl、assets/file-list.txt（以及现有 markdown 转换产物如需要）
-   ◦ 退出码：任一步失败非 0；控制台输出可定位错误（不打印任何密钥）
-   • python -m local_arxiv serve [--host 127.0.0.1] [--port 8000]
-   ◦ 行为：启动静态文件服务，页面只读本地相对路径（assets/file-list.txt、data/*.jsonl）
-   ◦ 默认：固定 127.0.0.1:8000；端口占用则报错并提示换端口
-2) 数据流（run 内部顺序）
-   • Crawl：抓取当天 arXiv 数据 → data/YYYY-MM-DD.jsonl
-   • Dedup：与历史窗口（例如过去 N 天）对比去重（可配置 N）
-   • Enhance：对每条 paper 的 abstract 调 llama-server /v1/chat/completions，强制 JSON 输出并做鲁棒解析，写入 AI 字段
-   • (可选) Convert：把增强后的 jsonl 转成现有站点需要的 md/结构（若前端依赖）
-   • Index：生成/更新 assets/file-list.txt，用于前端列出可用日期文件
-3) llama-server 处理（两种模式）
-   • 默认“仅连接”：
-   ◦ run 启动时检查 LLAMA_BASE_URL 可达、/v1/models 可返回、指定 LLAMA_MODEL 存在；不满足则立即失败退出
-   • 可选“自动启动”（--start-llama-server）：
-   ◦ run 接受 --llama-bin（llama-server 可执行文件）与 --gguf（模型路径）等参数
-   ◦ run 启动子进程后轮询健康检查，成功后再进入 Enhance
-   ◦ run 结束时（成功/失败/中断）都要负责关闭子进程（跨平台用 subprocess.Popen + terminate/kill 兜底）
-4) 前端本地化约束（serve 配套）
-   • 前端不再支持 GitHub raw / 线上模式：数据源统一为相对路径或 window.location.origin 下的本地文件
-   • assets/file-list.txt 格式固定：一行一个文件名（或相对路径），前端按此加载对应 data/*.jsonl
-5) 配置面（环境变量/参数边界）
-   • 必需（Enhance 阶段）：
-   ◦ LLAMA_BASE_URL（默认 http://127.0.0.1:8080/v1 ）
-   ◦ LLAMA_MODEL、LANGUAGE、MAX_TOKENS、TEMPERATURE
-   • 可选（run 参数）：
-   ◦ --date、--dedup-days N、--categories ...、--max-workers（默认 1 串行）
-6) 错误与验收
-   • 解析失败：保证每条记录仍写出 5 个 AI 字段（为空字符串占位），避免前端崩
-   • 验收标准：
-   ◦ run 能在离线环境（除 arXiv 抓取 + 本机 llama-server）产出完整文件
-   ◦ serve 启动后首页能加载日期列表并渲染包含 AI 字段的论文详情
