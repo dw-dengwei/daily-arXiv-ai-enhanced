@@ -449,6 +449,25 @@ header {
   background-color: rgba(0,0,0,0.14);
 }
 
+.annotation-filter-select {
+  flex-shrink: 0;
+  max-width: 180px;
+  padding: 6px 28px 6px 12px;
+  border: 1px solid var(--border-accent);
+  border-radius: 999px;
+  background-color: rgba(102, 126, 234, 0.05);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+
+.annotation-filter-select:focus,
+.annotation-filter-select:hover {
+  border-color: var(--primary-color);
+  color: var(--text-color);
+}
+
 .filter-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -716,7 +735,17 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 16px 0;
+  margin: 0;
+}
+
+.paper-card-spacer {
+  flex-grow: 1;
+}
+
+.paper-card-actions {
+  margin-top: auto;
+  padding-top: 16px;
+  margin-bottom: 12px;
 }
 
 .paper-annotations-modal {
@@ -1243,6 +1272,24 @@ main {
   background-color: rgba(0, 0, 0, 0.02);
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   margin: 16px -24px -24px -24px;
+}
+
+.date-picker-action-button {
+  display: block;
+  margin: 36px auto 0 auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  background-color: rgba(102, 126, 234, 0.08);
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.date-picker-action-button:hover {
+  background-color: rgba(102, 126, 234, 0.14);
+  border-color: var(--primary-color);
 }
 
 .toggle-switch {

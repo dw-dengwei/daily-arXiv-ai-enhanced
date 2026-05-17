@@ -21,6 +21,7 @@ let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作�
 let annotations = {}; // paper id -> { read: [], favorite: [] }
 let annotationsAvailable = true;
 let currentAnnotationName = '';
+let annotationFilter = 'all';
 
 function getEffectiveAnnotationName() {
   const trimmed = currentAnnotationName.trim();
@@ -110,6 +111,28 @@ function updateAnnotationNameUI() {
     nameInput.placeholder = 'user';
     nameInput.title = `Current name: ${getEffectiveAnnotationName()}`;
   }
+  updateAnnotationFilterOptions();
+}
+
+function updateAnnotationFilterOptions() {
+  const filterSelect = document.getElementById('annotationFilterSelect');
+  if (!filterSelect) {
+    return;
+  }
+
+  const name = getEffectiveAnnotationName();
+  const options = [
+    ['all', 'All marks'],
+    ['read-by-me', `Read by ${name}`],
+    ['favorite-by-me', `Favorited by ${name}`],
+    ['unread-by-me', `Unread by ${name}`],
+    ['not-favorite-by-me', `Not favorited by ${name}`],
+  ];
+
+  filterSelect.innerHTML = options
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join('');
+  filterSelect.value = annotationFilter;
 }
 
 async function fetchAnnotations() {
@@ -120,6 +143,7 @@ async function fetchAnnotations() {
     }
     annotations = await response.json();
     annotationsAvailable = true;
+    updateAnnotationFilterOptions();
   } catch (error) {
     annotations = {};
     annotationsAvailable = false;
@@ -157,6 +181,7 @@ async function togglePaperAnnotation(paper, type) {
 
     const result = await response.json();
     annotations = result.annotations || annotations;
+    updateAnnotationFilterOptions();
     renderPapers();
     const modal = document.getElementById('paperModal');
     if (modal && modal.classList.contains('active')) {
@@ -599,6 +624,14 @@ function initEventListeners() {
   });
 
   document.getElementById('dateRangeMode').addEventListener('change', toggleRangeMode);
+  const selectAllDatesButton = document.getElementById('selectAllDatesButton');
+  if (selectAllDatesButton) {
+    selectAllDatesButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      loadAllAvailableDates();
+      toggleDatePicker();
+    });
+  }
   
   // 其他原有的事件监听器
   document.getElementById('closeModal').addEventListener('click', closeModal);
@@ -832,6 +865,14 @@ function initEventListeners() {
     });
 
     // 点击其他地方不隐藏输入框（需求4），因此不添加blur隐藏逻辑
+  }
+
+  const annotationFilterSelect = document.getElementById('annotationFilterSelect');
+  if (annotationFilterSelect) {
+    annotationFilterSelect.addEventListener('change', () => {
+      annotationFilter = annotationFilterSelect.value;
+      renderPapers();
+    });
   }
 
   const annotationNameInput = document.getElementById('annotationNameInput');
@@ -1342,6 +1383,27 @@ function renderPapers() {
   // 创建匹配论文的集合
   let filteredPapers = [...papers];
 
+  if (annotationFilter !== 'all') {
+    filteredPapers = filteredPapers.filter(paper => {
+      const readByName = isPaperMarkedByCurrentName(paper, 'read');
+      const favoriteByName = isPaperMarkedByCurrentName(paper, 'favorite');
+
+      if (annotationFilter === 'read-by-me') {
+        return readByName;
+      }
+      if (annotationFilter === 'favorite-by-me') {
+        return favoriteByName;
+      }
+      if (annotationFilter === 'unread-by-me') {
+        return !readByName;
+      }
+      if (annotationFilter === 'not-favorite-by-me') {
+        return !favoriteByName;
+      }
+      return true;
+    });
+  }
+
   // 重置所有论文的匹配状态，避免上次渲染的残留
   filteredPapers.forEach(p => {
     p.isMatched = false;
@@ -1639,7 +1701,10 @@ function renderPapers() {
       </div>
       <div class="paper-card-body">
         <p class="paper-card-summary">${highlightedSummary}</p>
-        ${renderAnnotationControls(paper, 'card')}
+        <div class="paper-card-spacer"></div>
+        <div class="paper-card-actions">
+          ${renderAnnotationControls(paper, 'card')}
+        </div>
         <div class="paper-card-footer">
           <div class="footer-left">
             <span class="paper-card-date">${formatDate(paper.date)}</span>
@@ -2006,6 +2071,16 @@ async function loadPapersByDateRange(startDate, endDate) {
       </div>
     `;
   }
+}
+
+function loadAllAvailableDates() {
+  if (!availableDates || availableDates.length === 0) {
+    alert('No available papers.');
+    return;
+  }
+
+  const sortedDates = [...availableDates].sort();
+  loadPapersByDateRange(sortedDates[0], sortedDates[sortedDates.length - 1]);
 }
 
 // 清除所有激活的关键词
