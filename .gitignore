@@ -19,6 +19,7 @@ yarn.lock
 .DS_Store
 package.json
 data/*.jsonl
+data/*.json
 data/*.md
 assets/file-list.txt
 js/auth-config.js.backup

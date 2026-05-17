@@ -18,6 +18,155 @@ let currentFilteredPapers = []; // 当前过滤后的论文列表
 let textSearchQuery = ''; // 实时文本搜索查询
 let previousActiveKeywords = null; // 文本搜索激活时，暂存之前的关键词激活集合
 let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作者激活集合
+let annotations = {}; // paper id -> { read: [], favorite: [] }
+let annotationsAvailable = true;
+let currentAnnotationName = '';
+
+function getEffectiveAnnotationName() {
+  const trimmed = currentAnnotationName.trim();
+  return trimmed || 'user';
+}
+
+function getPaperKey(paper) {
+  return paper.id || paper.url;
+}
+
+function normalizeAnnotationList(value) {
+  return Array.isArray(value) ? value.filter(name => typeof name === 'string' && name.trim()) : [];
+}
+
+function getPaperAnnotations(paper) {
+  const paperKey = getPaperKey(paper);
+  const paperAnnotations = annotations[paperKey] || {};
+  return {
+    read: normalizeAnnotationList(paperAnnotations.read),
+    favorite: normalizeAnnotationList(paperAnnotations.favorite)
+  };
+}
+
+function isPaperMarkedByCurrentName(paper, type) {
+  const paperAnnotations = getPaperAnnotations(paper);
+  return paperAnnotations[type].includes(getEffectiveAnnotationName());
+}
+
+function renderAnnotationControls(paper, location = 'card') {
+  const paperAnnotations = getPaperAnnotations(paper);
+  const readCount = paperAnnotations.read.length;
+  const favoriteCount = paperAnnotations.favorite.length;
+  const readActive = isPaperMarkedByCurrentName(paper, 'read');
+  const favoriteActive = isPaperMarkedByCurrentName(paper, 'favorite');
+
+  return `
+    <div class="paper-annotations paper-annotations-${location}">
+      <button class="annotation-button ${readActive ? 'active' : ''}" data-annotation-type="read" data-paper-id="${getPaperKey(paper)}" title="Mark as read">
+        <span class="annotation-icon">${readActive ? '✓' : '○'}</span>
+        <span>Read</span>
+        <span class="annotation-count">${readCount}</span>
+      </button>
+      <button class="annotation-button favorite ${favoriteActive ? 'active' : ''}" data-annotation-type="favorite" data-paper-id="${getPaperKey(paper)}" title="Favorite">
+        <span class="annotation-icon">${favoriteActive ? '★' : '☆'}</span>
+        <span>Favorite</span>
+        <span class="annotation-count">${favoriteCount}</span>
+      </button>
+    </div>
+  `;
+}
+
+function loadAnnotationName() {
+  currentAnnotationName = localStorage.getItem('annotationName') || '';
+  updateAnnotationNameUI();
+}
+
+function setAnnotationName(name) {
+  currentAnnotationName = name.trim();
+  if (currentAnnotationName) {
+    localStorage.setItem('annotationName', currentAnnotationName);
+  } else {
+    localStorage.removeItem('annotationName');
+  }
+  updateAnnotationNameUI();
+  renderPapers();
+}
+
+function promptForAnnotationName(force = false) {
+  if (!force && currentAnnotationName.trim()) {
+    return currentAnnotationName.trim();
+  }
+
+  const input = window.prompt('Enter your name', currentAnnotationName.trim() || 'user');
+  if (input === null) {
+    return null;
+  }
+
+  const name = input.trim() || 'user';
+  setAnnotationName(name);
+  return name;
+}
+
+function updateAnnotationNameUI() {
+  const nameInput = document.getElementById('annotationNameInput');
+  if (nameInput) {
+    nameInput.value = currentAnnotationName;
+    nameInput.placeholder = 'user';
+    nameInput.title = `Current name: ${getEffectiveAnnotationName()}`;
+  }
+}
+
+async function fetchAnnotations() {
+  try {
+    const response = await fetch('/api/annotations');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    annotations = await response.json();
+    annotationsAvailable = true;
+  } catch (error) {
+    annotations = {};
+    annotationsAvailable = false;
+    console.warn('Shared annotation API unavailable:', error);
+  }
+}
+
+async function togglePaperAnnotation(paper, type) {
+  const name = promptForAnnotationName(false);
+  if (!name) {
+    return;
+  }
+
+  if (!annotationsAvailable) {
+    alert('Shared annotations are unavailable. Start the site with python serve_local.py.');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/annotations/toggle', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        paper_id: getPaperKey(paper),
+        type,
+        name
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    annotations = result.annotations || annotations;
+    renderPapers();
+    const modal = document.getElementById('paperModal');
+    if (modal && modal.classList.contains('active')) {
+      showPaperDetails(paper, currentPaperIndex + 1);
+    }
+  } catch (error) {
+    console.error('Failed to update annotation:', error);
+    alert('Failed to update annotation. Please try again.');
+  }
+}
 
 // 加载用户的关键词设置
 function loadUserKeywords() {
@@ -90,7 +239,7 @@ function renderFilterTags() {
       tagElement.className = `category-button author-button ${activeAuthors.includes(author) ? 'active' : ''}`;
       tagElement.textContent = author;
       tagElement.dataset.author = author;
-      tagElement.title = "匹配作者姓名";
+      tagElement.title = "Match author name";
       
       tagElement.addEventListener('click', () => {
         toggleAuthorFilter(author);
@@ -115,7 +264,7 @@ function renderFilterTags() {
       tagElement.className = `category-button keyword-button ${activeKeywords.includes(keyword) ? 'active' : ''}`;
       tagElement.textContent = keyword;
       tagElement.dataset.keyword = keyword;
-      tagElement.title = "匹配标题和摘要中的关键词";
+      tagElement.title = "Match keywords in title and summary";
       
       tagElement.addEventListener('click', () => {
         toggleKeywordFilter(keyword);
@@ -305,7 +454,7 @@ function matchPapersByKeywords(papers, keywords) {
       return {
         ...paper,
         isMatched: true,
-        matchReason: matchedKeywords.length > 0 ? `关键词: ${matchedKeywords.join(', ')}` : null
+        matchReason: matchedKeywords.length > 0 ? `Keyword: ${matchedKeywords.join(', ')}` : null
       };
     }
     return { ...paper, isMatched: false, matchReason: null };
@@ -330,7 +479,7 @@ function matchPapersByAuthor(papers, query_authors) {
       return {
         ...paper,
         isMatched: true,
-        matchReason: matchedAuthors.length > 0 ? `作者: ${matchedAuthors.join(', ')}` : null
+        matchReason: matchedAuthors.length > 0 ? `Author: ${matchedAuthors.join(', ')}` : null
       };
     }
     return { ...paper, isMatched: false, matchReason: null };
@@ -371,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
 
   fetchGitHubStats();
+  loadAnnotationName();
 
   // 加载用户关键词
   loadUserKeywords();
@@ -384,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
   urlAuthorParam = getUrlAuthor();
   urlKeywordsParam = getUrlKeywords();
 
-  fetchAvailableDates().then(() => {
+  Promise.all([fetchAnnotations(), fetchAvailableDates()]).then(() => {
     if (availableDates.length > 0) {
       loadPapersByDate(availableDates[0]);
     } else {
@@ -683,6 +833,23 @@ function initEventListeners() {
 
     // 点击其他地方不隐藏输入框（需求4），因此不添加blur隐藏逻辑
   }
+
+  const annotationNameInput = document.getElementById('annotationNameInput');
+  if (annotationNameInput) {
+    annotationNameInput.addEventListener('change', () => {
+      setAnnotationName(annotationNameInput.value);
+    });
+    annotationNameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        annotationNameInput.blur();
+      }
+    });
+    annotationNameInput.addEventListener('click', () => {
+      if (!currentAnnotationName.trim()) {
+        promptForAnnotationName(true);
+      }
+    });
+  }
 }
 
 // Function to detect preferred language based on browser settings
@@ -716,6 +883,22 @@ function selectLanguageForDate(date, preferredLanguage = null) {
   return availableLanguages.includes('Chinese') ? 'Chinese' : availableLanguages[0];
 }
 
+function selectDataFileForDate(date) {
+  const dateFileMap = window.dateFileMap?.get(date);
+  const availableLanguages = window.dateLanguageMap?.get(date) || [];
+
+  if (availableLanguages.length > 0) {
+    const selectedLanguage = selectLanguageForDate(date);
+    return `data/${date}_AI_enhanced_${selectedLanguage}.jsonl`;
+  }
+
+  if (dateFileMap?.raw) {
+    return `data/${date}.jsonl`;
+  }
+
+  return `data/${date}.jsonl`;
+}
+
 async function fetchAvailableDates() {
   try {
     // 读取当前站点下生成的数据文件列表
@@ -726,28 +909,46 @@ async function fetchAvailableDates() {
       return [];
     }
     const text = await response.text();
-    const files = text.trim().split('\n');
+    const files = text.trim().split('\n').map(file => file.trim()).filter(Boolean);
 
-    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Chinese)\.jsonl/;
+    const enhancedDateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Chinese)\.jsonl/;
+    const rawDateRegex = /(\d{4}-\d{2}-\d{2})\.jsonl/;
     const dateLanguageMap = new Map(); // Store date -> available languages
+    const dateFileMap = new Map(); // Store date -> { raw, languages }
     const dates = [];
+    const addDate = (date) => {
+      if (!dateFileMap.has(date)) {
+        dateFileMap.set(date, { raw: false, languages: [] });
+        dates.push(date);
+      }
+    };
     
     files.forEach(file => {
-      const match = file.match(dateRegex);
-      if (match && match[1] && match[2]) {
-        const date = match[1];
-        const language = match[2];
+      const enhancedMatch = file.match(enhancedDateRegex);
+      if (enhancedMatch && enhancedMatch[1] && enhancedMatch[2]) {
+        const date = enhancedMatch[1];
+        const language = enhancedMatch[2];
+        addDate(date);
         
         if (!dateLanguageMap.has(date)) {
           dateLanguageMap.set(date, []);
-          dates.push(date);
         }
         dateLanguageMap.get(date).push(language);
+        dateFileMap.get(date).languages.push(language);
+        return;
+      }
+
+      const rawMatch = file.match(rawDateRegex);
+      if (rawMatch && rawMatch[1]) {
+        const date = rawMatch[1];
+        addDate(date);
+        dateFileMap.get(date).raw = true;
       }
     });
     
     // Store the language mapping globally for later use
     window.dateLanguageMap = dateLanguageMap;
+    window.dateFileMap = dateFileMap;
     availableDates = [...new Set(dates)];
     availableDates.sort((a, b) => new Date(b) - new Date(a));
 
@@ -855,9 +1056,7 @@ async function loadPapersByDate(date) {
   `;
   
   try {
-    const selectedLanguage = selectLanguageForDate(date);
-    // 从 data 分支获取数据文件
-    const dataUrl = DATA_CONFIG.getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
+    const dataUrl = DATA_CONFIG.getDataUrl(selectDataFileForDate(date));
     const response = await fetch(dataUrl);
     // 如果文件不存在（例如返回 404），在论文展示区域提示没有论文
     if (!response.ok) {
@@ -1151,7 +1350,7 @@ function renderPapers() {
 
   // 文本搜索优先：当存在非空文本时，像关键词/作者一样只排序不隐藏
   if (textSearchQuery && textSearchQuery.trim().length > 0) {
-    const q = textSearchQuery.toLowerCase();
+      const q = textSearchQuery.toLowerCase();
 
     // 排序：匹配的排前
     filteredPapers.sort((a, b) => {
@@ -1199,7 +1398,7 @@ function renderPapers() {
       ].join(' ').toLowerCase();
       const matched = hay.includes(q);
       p.isMatched = matched;
-      p.matchReason = matched ? [`文本: ${textSearchQuery}`] : undefined;
+      p.matchReason = matched ? [`Text: ${textSearchQuery}`] : undefined;
     });
   } else {
     // 关键词和作者匹配，但不过滤，只排序
@@ -1265,7 +1464,7 @@ function renderPapers() {
               `${paper.title} ${paper.summary}`.toLowerCase().includes(keyword.toLowerCase())
             );
             if (matchedKeywords.length > 0) {
-              paper.matchReason.push(`关键词: ${matchedKeywords.join(', ')}`);
+              paper.matchReason.push(`Keyword: ${matchedKeywords.join(', ')}`);
             }
           }
           if (matchesAuthor) {
@@ -1273,7 +1472,7 @@ function renderPapers() {
               paper.authors.toLowerCase().includes(author.toLowerCase())
             );
             if (matchedAuthors.length > 0) {
-              paper.matchReason.push(`作者: ${matchedAuthors.join(', ')}`);
+              paper.matchReason.push(`Author: ${matchedAuthors.join(', ')}`);
             }
           }
         }
@@ -1344,7 +1543,7 @@ function renderPapers() {
             `${paper.title} ${paper.summary}`.toLowerCase().includes(keyword.toLowerCase())
           );
           if (matchedKeywords.length > 0) {
-            paper.matchReason.push(`关键词: ${matchedKeywords.join(', ')}`);
+            paper.matchReason.push(`Keyword: ${matchedKeywords.join(', ')}`);
           }
         }
         if (matchesAuthor) {
@@ -1352,7 +1551,7 @@ function renderPapers() {
             paper.authors.toLowerCase().includes(author.toLowerCase())
           );
           if (matchedAuthors.length > 0) {
-            paper.matchReason.push(`作者: ${matchedAuthors.join(', ')}`);
+            paper.matchReason.push(`Author: ${matchedAuthors.join(', ')}`);
           }
         }
       }
@@ -1379,7 +1578,7 @@ function renderPapers() {
     
     if (paper.isMatched) {
       // 添加匹配原因提示
-      paperCard.title = `匹配: ${paper.matchReason.join(' | ')}`;
+      paperCard.title = `Matched: ${paper.matchReason.join(' | ')}`;
     }
     
     const categoryTags = paper.allCategories ? 
@@ -1430,7 +1629,7 @@ function renderPapers() {
 
     paperCard.innerHTML = `
       <div class="paper-card-index">${index + 1}</div>
-      ${paper.isMatched ? '<div class="match-badge" title="匹配您的搜索条件"></div>' : ''}
+      ${paper.isMatched ? '<div class="match-badge" title="Matched search conditions"></div>' : ''}
       <div class="paper-card-header">
         <h3 class="paper-card-title">${highlightedTitle}</h3>
         <p class="paper-card-authors">${formattedAuthors}</p>
@@ -1440,6 +1639,7 @@ function renderPapers() {
       </div>
       <div class="paper-card-body">
         <p class="paper-card-summary">${highlightedSummary}</p>
+        ${renderAnnotationControls(paper, 'card')}
         <div class="paper-card-footer">
           <div class="footer-left">
             <span class="paper-card-date">${formatDate(paper.date)}</span>
@@ -1452,6 +1652,14 @@ function renderPapers() {
     paperCard.addEventListener('click', () => {
       currentPaperIndex = index; // 记录当前点击的论文索引
       showPaperDetails(paper, index + 1);
+    });
+
+    paperCard.querySelectorAll('.annotation-button').forEach(button => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        togglePaperAnnotation(paper, button.dataset.annotationType);
+      });
     });
     
     container.appendChild(paperCard);
@@ -1533,6 +1741,7 @@ function showPaperDetails(paper, paperIndex) {
       <p><strong>Authors: </strong>${highlightedAuthors}</p>
       <p><strong>Categories: </strong>${categoryDisplay}</p>
       <p><strong>Date: </strong>${formatDate(paper.date)}</p>
+      ${renderAnnotationControls(paper, 'modal')}
       
       
       <h3>TL;DR</h3>
@@ -1568,6 +1777,13 @@ function showPaperDetails(paper, paperIndex) {
   
   // Update modal content
   document.getElementById('modalBody').innerHTML = modalContent;
+  document.querySelectorAll('#modalBody .annotation-button').forEach(button => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      togglePaperAnnotation(paper, button.dataset.annotationType);
+    });
+  });
   document.getElementById('paperLink').href = paper.url;
   document.getElementById('pdfLink').href = paper.url.replace('abs', 'pdf');
   document.getElementById('htmlLink').href = paper.url.replace('abs', 'html');
@@ -1735,11 +1951,15 @@ async function loadPapersByDateRange(startDate, endDate) {
     const allPaperData = {};
     
     for (const date of validDatesInRange) {
-      const selectedLanguage = selectLanguageForDate(date);
-      // 从 data 分支获取数据文件
-      const dataUrl = DATA_CONFIG.getDataUrl(`data/${date}_AI_enhanced_${selectedLanguage}.jsonl`);
+      const dataUrl = DATA_CONFIG.getDataUrl(selectDataFileForDate(date));
       const response = await fetch(dataUrl);
+      if (!response.ok) {
+        continue;
+      }
       const text = await response.text();
+      if (!text || text.trim() === '') {
+        continue;
+      }
       const dataPapers = parseJsonlData(text, date);
       
       // 合并数据

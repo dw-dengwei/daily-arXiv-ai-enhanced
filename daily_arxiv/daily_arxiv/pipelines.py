@@ -15,7 +15,13 @@ from datetime import datetime, timedelta
 class DailyArxivPipeline:
     def __init__(self):
         self.page_size = 100
-        self.client = arxiv.Client(self.page_size)
+        delay_seconds = float(os.environ.get("ARXIV_API_DELAY_SECONDS", "10"))
+        num_retries = int(os.environ.get("ARXIV_API_NUM_RETRIES", "5"))
+        self.client = arxiv.Client(
+            page_size=self.page_size,
+            delay_seconds=delay_seconds,
+            num_retries=num_retries,
+        )
 
     def process_item(self, item: dict, spider):
         item["pdf"] = f"https://arxiv.org/pdf/{item['id']}"

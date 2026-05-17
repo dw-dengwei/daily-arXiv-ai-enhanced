@@ -283,6 +283,36 @@ header {
   gap: 20px;
 }
 
+.annotation-name-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-accent);
+  border-radius: 999px;
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+.annotation-name-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+#annotationNameInput {
+  width: 90px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+#annotationNameInput::placeholder {
+  color: var(--text-tertiary);
+}
+
 .date-selector {
   display: flex;
   align-items: center;
@@ -680,6 +710,61 @@ main {
   background-color: var(--background-hover);
   color: var(--text-secondary);
   border: 1px solid var(--border-accent);
+}
+
+.paper-annotations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px 0;
+}
+
+.paper-annotations-modal {
+  margin: 12px 0 18px 0;
+}
+
+.annotation-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  background-color: rgba(102, 126, 234, 0.05);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.annotation-button:hover {
+  background-color: rgba(102, 126, 234, 0.12);
+  color: var(--primary-color);
+}
+
+.annotation-button.active {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.annotation-button.favorite.active {
+  background: var(--gold-gradient);
+  color: #3b2f00;
+}
+
+.annotation-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.75);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.annotation-button.active .annotation-count {
+  color: var(--text-color);
 }
 
 .paper-card-body {
