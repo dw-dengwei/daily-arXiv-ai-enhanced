@@ -4,9 +4,7 @@ import sys
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
-from queue import Queue
 from threading import Lock
-# INSERT_YOUR_CODE
 import requests
 
 import dotenv
@@ -27,6 +25,89 @@ if os.path.exists('.env'):
 template = open("template.txt", "r").read()
 system = open("system.txt", "r").read()
 
+REQUIRED_AI_FIELDS = ("tldr", "motivation", "method", "result", "conclusion")
+
+
+def split_sentences(text: str) -> List[str]:
+    """Split text into candidate sentences."""
+    text = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not text:
+        return []
+    parts = re.split(r"(?<=[\.\!\?。！？;；])\s+", text)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def shorten_text(text: str, limit: int = 220) -> str:
+    text = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
+def extract_core_sentence(summary: str) -> str:
+    """Extract one concise sentence that best describes innovation/work."""
+    cue_words = (
+        "propose",
+        "present",
+        "introduce",
+        "develop",
+        "novel",
+        "new",
+        "framework",
+        "method",
+        "approach",
+        "algorithm",
+        "planner",
+        "policy",
+        "reinforcement",
+        "exploration",
+        "path planning",
+        "vision-language",
+        "vlm",
+        "benchmark",
+        "outperform",
+        "improve",
+        "achieve",
+        "demonstrate",
+    )
+    sentences = split_sentences(summary)
+    if not sentences:
+        return "No abstract content available."
+
+    best = sentences[0]
+    best_score = -1
+    for sent in sentences[:8]:
+        lower = sent.lower()
+        score = sum(1 for w in cue_words if w in lower)
+        if re.search(r"\d+(\.\d+)?%?", sent):
+            score += 1
+        if len(sent) < 30:
+            score -= 1
+        if score > best_score:
+            best_score = score
+            best = sent
+    return shorten_text(best, limit=220)
+
+
+def build_fallback_ai(item: Dict, reason: str = "") -> Dict:
+    summary = item.get("summary", "")
+    core = extract_core_sentence(summary)
+    if reason:
+        print(f"Fallback summary for {item.get('id', 'unknown')} due to: {reason}", file=sys.stderr)
+    return {
+        "tldr": core,
+        # Keep details empty so front-end shows only key sentence.
+        "motivation": "",
+        "method": "",
+        "result": "",
+        "conclusion": "",
+    }
+
+
+def is_quota_error(error_msg: str) -> bool:
+    msg = str(error_msg).lower()
+    return "insufficient_quota" in msg or "exceeded your current quota" in msg
+
 def parse_args():
     """解析命令行参数"""
     parser = argparse.ArgumentParser()
@@ -34,7 +115,7 @@ def parse_args():
     parser.add_argument("--max_workers", type=int, default=1, help="Maximum number of parallel workers")
     return parser.parse_args()
 
-def process_single_item(chain, item: Dict, language: str) -> Dict:
+def process_single_item(chain, item: Dict, language: str, runtime_state: Dict, state_lock: Lock) -> Dict:
     def is_sensitive(content: str) -> bool:
         """
         调用 spam.dw-dengwei.workers.dev 接口检测内容是否包含敏感词。
@@ -115,15 +196,12 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
         item.update(code_info)
 
     """处理单个数据项"""
-    # Default structure with meaningful fallback values
-    default_ai_fields = {
-        "tldr": "Summary generation failed",
-        "motivation": "Motivation analysis unavailable",
-        "method": "Method extraction failed",
-        "result": "Result analysis unavailable",
-        "conclusion": "Conclusion extraction failed"
-    }
-    
+    default_ai_fields = build_fallback_ai(item)
+
+    if runtime_state.get("force_local", False) or chain is None:
+        item['AI'] = default_ai_fields
+        return item
+
     try:
         response: Structure = chain.invoke({
             "language": language,
@@ -152,10 +230,19 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
     except Exception as e:
         # Catch any other exceptions and provide default values
         print(f"Unexpected error for {item.get('id', 'unknown')}: {e}", file=sys.stderr)
-        item['AI'] = default_ai_fields
+        item['AI'] = build_fallback_ai(item, reason=str(e))
+        if is_quota_error(e):
+            with state_lock:
+                runtime_state["force_local"] = True
+                if not runtime_state.get("quota_notice_printed", False):
+                    print(
+                        "Quota exhausted: switch remaining papers to local concise summaries.",
+                        file=sys.stderr,
+                    )
+                    runtime_state["quota_notice_printed"] = True
     
     # Final validation to ensure all required fields exist
-    for field in default_ai_fields.keys():
+    for field in REQUIRED_AI_FIELDS:
         if field not in item['AI']:
             item['AI'][field] = default_ai_fields[field]
 
@@ -167,22 +254,27 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
 
 def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int) -> List[Dict]:
     """并行处理所有数据项"""
-    llm = ChatOpenAI(model=model_name).with_structured_output(Structure, method="function_calling")
-    print('Connect to:', model_name, file=sys.stderr)
-    
-    prompt_template = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(system),
-        HumanMessagePromptTemplate.from_template(template=template)
-    ])
-
-    chain = prompt_template | llm
+    runtime_state = {"force_local": False, "quota_notice_printed": False}
+    state_lock = Lock()
+    chain = None
+    try:
+        llm = ChatOpenAI(model=model_name).with_structured_output(Structure, method="function_calling")
+        print('Connect to:', model_name, file=sys.stderr)
+        prompt_template = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(system),
+            HumanMessagePromptTemplate.from_template(template=template)
+        ])
+        chain = prompt_template | llm
+    except Exception as e:
+        runtime_state["force_local"] = True
+        print(f"LLM init failed, fallback to local summaries: {e}", file=sys.stderr)
     
     # 使用线程池并行处理
     processed_data = [None] * len(data)  # 预分配结果列表
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 提交所有任务
         future_to_idx = {
-            executor.submit(process_single_item, chain, item, language): idx
+            executor.submit(process_single_item, chain, item, language, runtime_state, state_lock): idx
             for idx, item in enumerate(data)
         }
         
@@ -200,13 +292,7 @@ def process_all_items(data: List[Dict], model_name: str, language: str, max_work
                 print(f"Item at index {idx} generated an exception: {e}", file=sys.stderr)
                 # Add default AI fields to ensure consistency
                 processed_data[idx] = data[idx]
-                processed_data[idx]['AI'] = {
-                    "tldr": "Processing failed",
-                    "motivation": "Processing failed",
-                    "method": "Processing failed",
-                    "result": "Processing failed",
-                    "conclusion": "Processing failed"
-                }
+                processed_data[idx]['AI'] = build_fallback_ai(data[idx], reason=str(e))
     
     return processed_data
 

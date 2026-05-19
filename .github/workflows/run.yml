@@ -5,7 +5,7 @@ name: arXiv-daily-ai-enhanced
 
 on:
   schedule:
-    - cron: "30 1 * * *"
+    - cron: "0,10,20,30,40,50 1 * * *"
   workflow_dispatch:
 
 
@@ -20,12 +20,27 @@ jobs:
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         uv sync
+
+    - name: Schedule guard
+      id: schedule_guard
+      run: |
+        today=$(TZ=Asia/Shanghai date "+%Y-%m-%d")
+        echo "crawl_date=$today" >> $GITHUB_OUTPUT
+        should_run=true
+
+        if [ "${{ github.event_name }}" = "schedule" ] && [ -f "report/${today}.md" ]; then
+          should_run=false
+          echo "今日 report 已存在，跳过重复定时运行 / Today's report exists, skip duplicate scheduled run"
+        fi
+
+        echo "should_run=$should_run" >> $GITHUB_OUTPUT
         
     - name: Crawl arXiv papers
       id: crawl_step
+      if: steps.schedule_guard.outputs.should_run == 'true'
       run: |
         source .venv/bin/activate
-        today=$(date -u "+%Y-%m-%d")
+        today=${{ steps.schedule_guard.outputs.crawl_date }}
         echo "开始爬取 $today 的arXiv论文... / Starting to crawl $today arXiv papers..."
         
         # 检查今日文件是否已存在，如存在则删除 / Check if today's file exists, delete if found
@@ -60,11 +75,13 @@ jobs:
         
     - name: Check for duplicates
       id: dedup_check
+      if: steps.schedule_guard.outputs.should_run == 'true'
       run: |
         source .venv/bin/activate
         echo "执行去重检查... / Performing intelligent deduplication check..."
         
         cd daily_arxiv
+        export CRAWL_DATE="${{ steps.crawl_step.outputs.crawl_date }}"
         # 执行去重检查脚本 / Execute intelligent deduplication check script
         set +e  # 暂时允许命令失败 / Temporarily allow command failure
         python daily_arxiv/check_stats.py
@@ -98,7 +115,7 @@ jobs:
         esac
         
     - name: AI Enhancement Processing
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
@@ -120,7 +137,7 @@ jobs:
         echo "AI增强处理完成 / AI enhancement processing completed"
         
     - name: Convert to Markdown
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         source .venv/bin/activate
         today=${{ steps.crawl_step.outputs.crawl_date }}
@@ -149,16 +166,65 @@ jobs:
             exit 1
         fi
         echo "Markdown转换完成 / Markdown conversion completed"
+
+    - name: Generate keyword daily report
+      if: steps.schedule_guard.outputs.should_run == 'true'
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        export GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}"
+        export NOTEBOOKLM_MODEL="${{ vars.NOTEBOOKLM_MODEL }}"
+        export NOTEBOOKLM_FALLBACK_MODELS="${{ vars.NOTEBOOKLM_FALLBACK_MODELS }}"
+        AI_FILE="data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+        RAW_FILE="data/${today}.jsonl"
+
+        echo "生成关键词日报... / Generating keyword daily report..."
+        if [ -f "$AI_FILE" ]; then
+          python report/generate_keyword_report.py --input "$AI_FILE" --date "$today" --output-dir report --generate-source-guide --source-guide-dir report/author_source_guides --max-source-papers 30
+        elif [ -f "$RAW_FILE" ]; then
+          python report/generate_keyword_report.py --input "$RAW_FILE" --date "$today" --output-dir report --generate-source-guide --source-guide-dir report/author_source_guides --max-source-papers 30
+        else
+          echo "未找到数据文件，生成占位日报... / No data file found, generating placeholder report..."
+          python report/generate_keyword_report.py --date "$today" --output-dir report --generate-source-guide --source-guide-dir report/author_source_guides --max-source-papers 30
+        fi
+        echo "关键词日报生成完成 / Keyword daily report generated"
+
+    - name: Send daily report email
+      if: steps.schedule_guard.outputs.should_run == 'true'
+      env:
+        SMTP_HOST: ${{ secrets.SMTP_HOST }}
+        SMTP_PORT: ${{ vars.SMTP_PORT }}
+        SMTP_USER: ${{ secrets.SMTP_USER }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SMTP_FROM: ${{ vars.SMTP_FROM }}
+        REPORT_EMAIL_TO: ${{ vars.REPORT_EMAIL_TO }}
+        SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+
+        if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASSWORD" ]; then
+          echo "跳过邮件发送：SMTP_HOST/SMTP_USER/SMTP_PASSWORD 未完整配置 / Skip email: SMTP secrets missing"
+          exit 0
+        fi
+
+        python report/send_daily_email.py \
+          --date "$today" \
+          --report-file "report/${today}.md" \
+          --source-file "report/author_source_guides/${today}.md" \
+          --default-to "wangzhuoxuan@seu.edu.cn"
+        echo "邮件发送完成 / Daily email sent"
         
     - name: Update file list
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         echo "更新文件列表... / Updating file list..."
         ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
         echo "文件列表更新完成 / File list updated"
 
     - name: Generate password hash and inject into config
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         echo "🔐 Generating password hash for authentication..."
 
@@ -192,6 +258,7 @@ jobs:
         echo "🔐 Authentication setup complete"
 
     - name: Summary
+      if: steps.schedule_guard.outputs.should_run == 'true'
       run: |
         if [ "${{ steps.dedup_check.outputs.has_new_content }}" = "true" ]; then
           echo "✅ 工作流完成：去重发现新内容并成功处理 / Workflow completed: Smart deduplication found new content and processed successfully"
@@ -213,7 +280,7 @@ jobs:
         fi
         
     - name: Inject repository info into data-config.js
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         echo "注入仓库信息到 data-config.js... / Injecting repository info into data-config.js..."
         
@@ -235,7 +302,7 @@ jobs:
         fi
 
     - name: Commit code changes to main branch
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true'
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
@@ -252,12 +319,12 @@ jobs:
         if git diff --staged --quiet; then
           echo "没有代码变更需要提交 / No code changes to commit"
         else
-          git commit -m "chore: update data-config.js with repository info"
+          git commit -m "chore: update workflow config and daily report"
           echo "代码变更已提交到 main 分支 / Code changes committed to main branch"
         fi
 
     - name: Push code changes to main branch
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true'
       run: |
         # 设置Git配置以处理自动合并 / Set Git config for automatic merging
         git config pull.rebase true
@@ -280,7 +347,7 @@ jobs:
         done
 
     - name: Prepare data files for data branch
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         echo "准备数据文件... / Preparing data files..."
         today=${{ steps.crawl_step.outputs.crawl_date }}
@@ -296,7 +363,7 @@ jobs:
         echo "数据文件已保存到临时目录 / Data files saved to temporary directory"
 
     - name: Setup and commit to data branch
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
@@ -350,7 +417,7 @@ jobs:
         fi
 
     - name: Push data changes to data branch
-      if: steps.dedup_check.outputs.has_new_content == 'true'
+      if: steps.schedule_guard.outputs.should_run == 'true' && steps.dedup_check.outputs.has_new_content == 'true'
       run: |
         # 设置Git配置以处理自动合并 / Set Git config for automatic merging
         git config pull.rebase true

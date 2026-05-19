@@ -13,6 +13,21 @@ import sys
 import os
 from datetime import datetime, timedelta
 
+
+def resolve_today_date():
+    """
+    优先使用工作流传入的日期，回退到本地当前日期。
+    Prefer workflow-provided date and fall back to local current date.
+    """
+    crawl_date = os.environ.get("CRAWL_DATE", "").strip()
+    if crawl_date:
+        try:
+            datetime.strptime(crawl_date, "%Y-%m-%d")
+            return crawl_date
+        except ValueError:
+            print(f"Invalid CRAWL_DATE format: {crawl_date}, fallback to local date", file=sys.stderr)
+    return (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d")
+
 def load_papers_data(file_path):
     """
     从jsonl文件中加载完整的论文数据
@@ -73,7 +88,8 @@ def perform_deduplication():
              - "error": 处理错误 / Processing error
     """
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = resolve_today_date()
+    today_dt = datetime.strptime(today, "%Y-%m-%d")
     today_file = f"../data/{today}.jsonl"
     history_days = 7  # 向前追溯几天的数据进行对比
 
@@ -91,7 +107,7 @@ def perform_deduplication():
         # 收集历史多日 ID 集合
         history_ids = set()
         for i in range(1, history_days + 1):
-            date_str = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+            date_str = (today_dt - timedelta(days=i)).strftime("%Y-%m-%d")
             history_file = f"../data/{date_str}.jsonl"
             _, past_ids = load_papers_data(history_file)
             history_ids.update(past_ids)

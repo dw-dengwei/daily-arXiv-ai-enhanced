@@ -2,3 +2,8 @@ Please analyze the following abstract of papers.
 
 Content:
 {content}
+
+Return concise output in JSON structure fields.
+Requirements:
+1) tldr: one sentence (<= 35 words), directly describing core contribution/innovation.
+2) motivation/method/result/conclusion: keep short; can be empty string when uncertain.

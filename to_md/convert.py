@@ -43,14 +43,15 @@ if __name__ == "__main__":
                 # Safely access AI fields with default values
                 ai_data = item.get('AI', {})
                 if not ai_data or not isinstance(ai_data, dict):
-                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to missing or invalid AI data")
-                    continue
-                
-                # Check if all required AI fields are present
-                required_fields = ['tldr', 'motivation', 'method', 'result', 'conclusion']
-                if not all(field in ai_data for field in required_fields):
-                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to incomplete AI fields")
-                    continue
+                    ai_data = {}
+
+                concise_tldr = ai_data.get('tldr', '').strip()
+                if not concise_tldr:
+                    # Fallback to the first sentence of abstract if tldr is missing
+                    fallback = str(item.get("summary", "")).replace("\n", " ").strip()
+                    concise_tldr = fallback.split(". ")[0].strip() if fallback else "No concise summary available."
+                if len(concise_tldr) > 220:
+                    concise_tldr = concise_tldr[:217] + "..."
                 
                 papers.append(
                     template.format(
@@ -58,7 +59,7 @@ if __name__ == "__main__":
                         authors=",".join(item["authors"]),
                         summary=item["summary"],
                         url=item['abs'],
-                        tldr=ai_data.get('tldr', ''),
+                        tldr=concise_tldr,
                         motivation=ai_data.get('motivation', ''),
                         method=ai_data.get('method', ''),
                         result=ai_data.get('result', ''),

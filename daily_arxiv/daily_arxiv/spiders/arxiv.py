@@ -17,9 +17,27 @@ class ArxivSpider(scrapy.Spider):
     name = "arxiv"  # 爬虫名称
     allowed_domains = ["arxiv.org"]  # 允许爬取的域名
 
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        if not text:
+            return ""
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _extract_categories(self, paper_dd):
+        subjects_text = " ".join(paper_dd.css(".list-subjects *::text").getall())
+        subjects_text = self._normalize_text(subjects_text)
+        # Example: Computer Vision and Pattern Recognition (cs.CV); Robotics (cs.RO)
+        codes = re.findall(r"\(([a-z]+\.[A-Za-z0-9\-]+)\)", subjects_text)
+        return sorted(set(codes))
+
     def parse(self, response):
         # 提取每篇论文的信息
         anchors = []
+        current_list_category = ""
+        m = re.search(r"/list/([^/]+)/new", response.url)
+        if m:
+            current_list_category = m.group(1)
+
         for li in response.css("div[id=dlpage] ul li"):
             href = li.css("a::attr(href)").get()
             if href and "item" in href:
@@ -46,32 +64,36 @@ class ArxivSpider(scrapy.Spider):
             paper_dd = paper.xpath("following-sibling::dd[1]")
             if not paper_dd:
                 continue
-            
-            # 提取论文分类信息 - 在subjects部分
-            subjects_text = paper_dd.css(".list-subjects .primary-subject::text").get()
-            if not subjects_text:
-                # 如果找不到主分类，尝试其他方式获取分类
-                subjects_text = paper_dd.css(".list-subjects::text").get()
-            
-            if subjects_text:
-                # 解析分类信息，通常格式如 "Computer Vision and Pattern Recognition (cs.CV)"
-                # 提取括号中的分类代码
-                categories_in_paper = re.findall(r'\(([^)]+)\)', subjects_text)
-                
-                # 检查论文分类是否与目标分类有交集
-                paper_categories = set(categories_in_paper)
-                if paper_categories.intersection(self.target_categories):
-                    yield {
-                        "id": arxiv_id,
-                        "categories": list(paper_categories),  # 添加分类信息用于调试
-                    }
-                    self.logger.info(f"Found paper {arxiv_id} with categories {paper_categories}")
-                else:
-                    self.logger.debug(f"Skipped paper {arxiv_id} with categories {paper_categories} (not in target {self.target_categories})")
-            else:
-                # 如果无法获取分类信息，记录警告但仍然返回论文（保持向后兼容）
-                self.logger.warning(f"Could not extract categories for paper {arxiv_id}, including anyway")
+
+            paper_categories = self._extract_categories(paper_dd)
+            if not paper_categories and current_list_category:
+                # Fallback: keep the listing category for robust filtering.
+                paper_categories = [current_list_category]
+
+            # 检查论文分类是否与目标分类有交集
+            if set(paper_categories).intersection(self.target_categories):
+                title_raw = " ".join(paper_dd.css(".list-title *::text").getall())
+                title = self._normalize_text(re.sub(r"^Title:\s*", "", title_raw))
+
+                authors = [self._normalize_text(a) for a in paper_dd.css(".list-authors a::text").getall()]
+                authors = [a for a in authors if a]
+
+                comment_raw = " ".join(paper_dd.css(".list-comments *::text").getall())
+                comment = self._normalize_text(re.sub(r"^Comments:\s*", "", comment_raw))
+
+                summary = self._normalize_text(" ".join(paper_dd.css(".mathjax::text").getall()))
+
                 yield {
                     "id": arxiv_id,
-                    "categories": [],
+                    "categories": paper_categories,
+                    "authors": authors,
+                    "title": title,
+                    "comment": comment,
+                    "summary": summary,
                 }
+                self.logger.info(f"Found paper {arxiv_id} with categories {paper_categories}")
+            else:
+                self.logger.debug(
+                    f"Skipped paper {arxiv_id} with categories {paper_categories} "
+                    f"(not in target {self.target_categories})"
+                )
