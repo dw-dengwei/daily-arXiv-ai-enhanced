@@ -21,6 +21,7 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 from structure import Structure
+from providers import detect_provider, get_provider_config, clamp_temperature
 
 if os.path.exists('.env'):
     dotenv.load_dotenv()
@@ -165,10 +166,24 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
             return None
     return item
 
-def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int) -> List[Dict]:
+def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int,
+                      provider: str = None) -> List[Dict]:
     """并行处理所有数据项"""
-    llm = ChatOpenAI(model=model_name).with_structured_output(Structure, method="function_calling")
-    print('Connect to:', model_name, file=sys.stderr)
+    config = get_provider_config(provider)
+    effective_model = model_name or config["model_name"]
+
+    llm_kwargs = {"model": effective_model}
+    if config.get("api_key"):
+        llm_kwargs["api_key"] = config["api_key"]
+    if config.get("base_url"):
+        llm_kwargs["base_url"] = config["base_url"]
+
+    # Clamp temperature for providers with restricted ranges (e.g. MiniMax)
+    temperature = clamp_temperature(0.7, provider)
+    llm_kwargs["temperature"] = temperature
+
+    llm = ChatOpenAI(**llm_kwargs).with_structured_output(Structure, method="function_calling")
+    print(f'Connect to: {effective_model} (provider: {provider or "default"})', file=sys.stderr)
     
     prompt_template = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system),
@@ -212,7 +227,9 @@ def process_all_items(data: List[Dict], model_name: str, language: str, max_work
 
 def main():
     args = parse_args()
-    model_name = os.environ.get("MODEL_NAME", 'deepseek-chat')
+    provider = detect_provider()
+    config = get_provider_config(provider)
+    model_name = os.environ.get("MODEL_NAME") or config["model_name"]
     language = os.environ.get("LANGUAGE", 'Chinese')
 
     # 检查并删除目标文件
@@ -237,13 +254,14 @@ def main():
 
     data = unique_data
     print('Open:', args.data, file=sys.stderr)
-    
+
     # 并行处理所有数据
     processed_data = process_all_items(
         data,
         model_name,
         language,
-        args.max_workers
+        args.max_workers,
+        provider=provider,
     )
     
     # 保存结果
