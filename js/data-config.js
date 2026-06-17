@@ -31,6 +31,12 @@ const DATA_CONFIG = {
      * @returns {string} Base URL for raw GitHub content
      */
     getDataBaseUrl: function() {
+        if (typeof window !== 'undefined') {
+            const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+            if (localHosts.has(window.location.hostname)) {
+                return window.location.origin;
+            }
+        }
         return `https://raw.githubusercontent.com/${this.repoOwner}/${this.repoName}/${this.dataBranch}`;
     },
 
@@ -43,4 +49,3 @@ const DATA_CONFIG = {
         return `${this.getDataBaseUrl()}/${filePath}`;
     }
 };
-

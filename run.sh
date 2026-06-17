@@ -22,9 +22,14 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo ""
     echo "🔧 可选变量 / Optional variables:"
     echo "   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"  # API基础URL / API base URL"
-    echo "   export LANGUAGE=\"Chinese\"                           # 语言设置 / Language setting"
-    echo "   export CATEGORIES=\"cs.CV, cs.CL\"                    # 关注分类 / Categories of interest"
+    echo "   export LANGUAGE=\"English\"                           # 语言设置 / Language setting"
+    echo "   export CATEGORIES=\"cs.LG, stat.ML, cs.AI, cs.CL, cs.CV, q-bio.GN, q-bio.QM, stat.AP, stat.ME, cs.IR\""
     echo "   export MODEL_NAME=\"gpt-4o-mini\"                     # 模型名称 / Model name"
+    echo "   export DAILY_TOPIC_MODE=\"rotate\"                    # rotate | fixed | exploratory"
+    echo "   export MAX_KEY_PAPERS_PER_DAY=\"3\""
+    echo "   export MAX_OTHER_PAPERS_PER_DAY=\"8\""
+    echo "   export SERENDIPITY_RATIO=\"0.25\""
+    echo "   export RESEARCH_PROFILE_PATH=\"research_profile.yaml\""
     echo ""
     echo "💡 设置后重新运行此脚本即可进行完整测试 / After setting, rerun this script for complete testing"
     echo "🚀 或者继续运行部分流程（爬取+去重检查）/ Or continue with partial workflow (crawl + dedup check)"
@@ -40,16 +45,26 @@ else
     PARTIAL_MODE=false
     
     # 设置默认值 / Set default values
-    export LANGUAGE="${LANGUAGE:-Chinese}"
-    export CATEGORIES="${CATEGORIES:-cs.CV, cs.CL}"
+    export LANGUAGE="${LANGUAGE:-English}"
+    export CATEGORIES="${CATEGORIES:-cs.LG, stat.ML, cs.AI, cs.CL, cs.CV, q-bio.GN, q-bio.QM, stat.AP, stat.ME, cs.IR}"
     export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+    export DAILY_TOPIC_MODE="${DAILY_TOPIC_MODE:-rotate}"
+    export MAX_KEY_PAPERS_PER_DAY="${MAX_KEY_PAPERS_PER_DAY:-3}"
+    export MAX_OTHER_PAPERS_PER_DAY="${MAX_OTHER_PAPERS_PER_DAY:-8}"
+    export SERENDIPITY_RATIO="${SERENDIPITY_RATIO:-0.25}"
+    export RESEARCH_PROFILE_PATH="${RESEARCH_PROFILE_PATH:-research_profile.yaml}"
     
     echo "🔧 当前配置 / Current configuration:"
     echo "   LANGUAGE: $LANGUAGE"
     echo "   CATEGORIES: $CATEGORIES"
     echo "   MODEL_NAME: $MODEL_NAME"
     echo "   OPENAI_BASE_URL: $OPENAI_BASE_URL"
+    echo "   DAILY_TOPIC_MODE: $DAILY_TOPIC_MODE"
+    echo "   MAX_KEY_PAPERS_PER_DAY: $MAX_KEY_PAPERS_PER_DAY"
+    echo "   MAX_OTHER_PAPERS_PER_DAY: $MAX_OTHER_PAPERS_PER_DAY"
+    echo "   SERENDIPITY_RATIO: $SERENDIPITY_RATIO"
+    echo "   RESEARCH_PROFILE_PATH: $RESEARCH_PROFILE_PATH"
 fi
 
 echo ""
@@ -59,6 +74,7 @@ echo "=== 开始本地调试流程 / Starting Local Debug Workflow ==="
 today=`date -u "+%Y-%m-%d"`
 
 echo "本地测试：爬取 $today 的arXiv论文... / Local test: Crawling $today arXiv papers..."
+mkdir -p data assets
 
 # 第一步：爬取数据 / Step 1: Crawl data
 echo "步骤1：开始爬取... / Step 1: Starting crawl..."
@@ -147,9 +163,24 @@ fi
 
 cd ..
 
-# 第五步：更新文件列表 / Step 5: Update file list
-echo "步骤5：更新文件列表... / Step 5: Updating file list..."
-ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+# 第五步：生成个人研究雷达 / Step 5: Generate Daily Research Radar
+echo "步骤5：生成 Daily Research Radar... / Step 5: Generating Daily Research Radar..."
+RADAR_DATA="data/${today}.jsonl"
+if [ "$PARTIAL_MODE" = "false" ] && [ -f "data/${today}_AI_enhanced_${LANGUAGE}.jsonl" ]; then
+    RADAR_DATA="data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+fi
+
+python daily_research_radar.py --date "$today" --data "$RADAR_DATA"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Daily Research Radar 生成失败 / Daily Research Radar generation failed"
+    exit 1
+fi
+echo "✅ Daily Research Radar 生成完成 / Daily Research Radar generated"
+
+# 第六步：更新文件列表 / Step 6: Update file list
+echo "步骤6：更新文件列表... / Step 6: Updating file list..."
+ls data/* | sed 's|data/||' > assets/file-list.txt
 echo "✅ 文件列表更新完成 / File list updated"
 
 # 完成总结 / Completion summary
@@ -161,12 +192,14 @@ if [ "$PARTIAL_MODE" = "false" ]; then
     echo "   ✅ 去重检查 / Smart duplicate check"
     echo "   ✅ AI增强处理 / AI enhancement"
     echo "   ✅ Markdown转换 / Markdown conversion"
+    echo "   ✅ Daily Research Radar / Daily Research Radar"
     echo "   ✅ 文件列表更新 / File list update"
 else
     echo "🔄 部分流程已完成 / Partial workflow finished:"
     echo "   ✅ 数据爬取 / Data crawling"
     echo "   ✅ 去重检查 / Smart duplicate check"
     echo "   ⏭️  跳过AI增强和Markdown转换 / Skipped AI enhancement and Markdown conversion"
+    echo "   ✅ Daily Research Radar / Daily Research Radar"
     echo "   ✅ 文件列表更新 / File list update"
     echo ""
     echo "💡 提示：设置OPENAI_API_KEY可启用完整功能 / Tip: Set OPENAI_API_KEY to enable full functionality"

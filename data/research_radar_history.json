@@ -1,0 +1,251 @@
+{
+  "2606.17600v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Proximal Mediation Analysis with Hidden Recanting Witnesses"
+  },
+  "2606.17668v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "ASTEROID: A Spatiotemporal Information Transformer for Forecasting Multi-Step Time Series of Molecular Dynamics"
+  },
+  "2606.17702v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "SegTME-UNI2: A Foundation Model-Based Framework for Generalisable Multiclass Cell Segmentation and LLM-Driven Tumour Microenvironment Characterisation in Histopathology"
+  },
+  "2606.17710v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Vision-language models for chest radiography do not always need the image"
+  },
+  "2606.17713v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Heterogeneous SAR-optical fusion for near-real-time land use and land cover mapping under cloud contamination: A novel framework and global benchmark dataset"
+  },
+  "2606.17809v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Million-scale multimodal pollen microscopy with expert-guided foundation models"
+  },
+  "2606.17846v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Qwen-RobotManip Technical Report: Alignment Unlocks Scale for Robotic Manipulation Foundation Models"
+  },
+  "2606.17867v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "A Quantitative Analysis of Multimodal Biomarkers in Alzheimer's Disease"
+  },
+  "2606.18074v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Tensor-based second-order causal discovery"
+  },
+  "2606.18123v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Predicting Immune Biomarkers with MultiModal Mixture-of-Expert Pathology Foundation Models Empowers Precision Oncology"
+  },
+  "2606.18139v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "other"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "Bayesian Threshold-Aligned Joint Disease Progression Modeling for Alzheimer's Disease"
+  },
+  "2606.18147v1": {
+    "appearances": [
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 4,
+        "section": "other"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      },
+      {
+        "date": "2026-06-17",
+        "score": 3,
+        "section": "key"
+      }
+    ],
+    "first_seen": "2026-06-17",
+    "last_recommended": "2026-06-17",
+    "title": "WEQA: Wearable hEalth Question Answering with Query-Adaptive Agentic Reasoning"
+  }
+}

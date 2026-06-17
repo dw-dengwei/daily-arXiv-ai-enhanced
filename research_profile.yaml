@@ -1,0 +1,176 @@
+profile:
+  owner: Weijie Liu
+  description: >
+    Personalised daily preprint monitoring for a final-year epidemiology and
+    genetic epidemiology PhD researcher moving toward early-career independence.
+  long_term_focus:
+    - osteoarthritis
+    - cardiometabolic traits
+    - Mendelian randomisation
+    - drug-target MR
+    - pQTL and proteomics
+    - UK Biobank
+    - All of Us
+    - polygenic risk scores
+    - survival prediction
+    - machine learning
+    - multimodal prediction
+    - multi-omics integration
+    - causal inference
+
+arxiv_categories:
+  - cs.LG
+  - stat.ML
+  - cs.AI
+  - cs.CL
+  - cs.CV
+  - q-bio.GN
+  - q-bio.QM
+  - stat.AP
+  - stat.ME
+  - cs.IR
+
+topics:
+  prs_statistical_genetics:
+    name: PRS and statistical genetics
+    weight: 1.4
+    keywords:
+      - polygenic risk score
+      - PRS
+      - PGS
+      - SBayesR
+      - SBayesRC
+      - LDpred
+      - PRS-CS
+      - cross-ancestry PRS
+      - multi-ancestry GWAS
+      - genetic prediction
+      - fine-mapping
+      - LD reference
+      - genetic architecture
+
+  genomic_sem_causal_inference:
+    name: Genomic SEM and causal inference
+    weight: 1.35
+    keywords:
+      - genomic SEM
+      - GSEM
+      - structural equation modelling
+      - structural equation modeling
+      - Mendelian randomization
+      - Mendelian randomisation
+      - drug target MR
+      - drug-target MR
+      - colocalization
+      - colocalisation
+      - coloc
+      - HyPrColoc
+      - mediation
+      - causal discovery
+      - pleiotropy
+      - LDSC
+      - genetic correlation
+
+  multiomics_proteomics_oa:
+    name: Multi-omics, proteomics, and OA-related biology
+    weight: 1.35
+    keywords:
+      - proteomics
+      - pQTL
+      - plasma protein
+      - Olink
+      - SomaScan
+      - multi-omics
+      - osteoarthritis
+      - cartilage
+      - joint replacement
+      - musculoskeletal
+      - inflammation
+      - extracellular matrix
+      - cardiometabolic
+
+  clinical_prediction_survival:
+    name: Clinical prediction and survival modelling
+    weight: 1.25
+    keywords:
+      - survival prediction
+      - Cox model
+      - Coxnet
+      - elastic net
+      - competing risks
+      - time-to-event
+      - calibration
+      - discrimination
+      - C-index
+      - time-dependent AUC
+      - clinical risk prediction
+      - UK Biobank
+      - EHR
+
+  multimodal_ai_deep_learning:
+    name: Multimodal AI and deep learning
+    weight: 1.1
+    keywords:
+      - multimodal
+      - cross attention
+      - cross-attention
+      - transformer
+      - foundation model
+      - representation learning
+      - contrastive learning
+      - graph neural network
+      - tabular deep learning
+      - MLP
+      - multi-modal fusion
+      - clinical foundation model
+      - biomedical AI
+
+  wearables_digital_epidemiology:
+    name: Wearables and digital epidemiology
+    weight: 1.15
+    keywords:
+      - wearable
+      - Fitbit
+      - accelerometer
+      - physical activity
+      - step count
+      - digital biomarker
+      - passive sensing
+      - longitudinal health data
+
+scoring:
+  biomedical_relevance_keywords:
+    - osteoarthritis
+    - cardiometabolic
+    - proteomics
+    - pQTL
+    - multi-omics
+    - Mendelian random
+    - polygenic
+    - PRS
+    - PGS
+    - prediction
+    - survival
+    - clinical
+    - EHR
+    - wearable
+    - UK Biobank
+    - All of Us
+    - OAI
+  novelty_keywords:
+    - novel
+    - new method
+    - framework
+    - benchmark
+    - representation learning
+    - cross-attention
+    - transformer
+    - foundation model
+    - causal discovery
+    - multi-omics
+    - fine-mapping
+  generic_llm_keywords:
+    - large language model
+    - LLM
+    - chatgpt
+    - instruction tuning

@@ -1,13 +1,47 @@
 import scrapy
 import os
 import re
+from pathlib import Path
+
+import yaml
+
+
+DEFAULT_CATEGORIES = [
+    "cs.LG",
+    "stat.ML",
+    "cs.AI",
+    "cs.CL",
+    "cs.CV",
+    "q-bio.GN",
+    "q-bio.QM",
+    "stat.AP",
+    "stat.ME",
+    "cs.IR",
+]
+
+
+def load_configured_categories():
+    env_categories = os.environ.get("CATEGORIES", "").strip()
+    if env_categories:
+        return [category.strip() for category in env_categories.split(",") if category.strip()]
+
+    config_path = Path(__file__).resolve().parents[2] / "config.yaml"
+    try:
+        with open(config_path, "r", encoding="utf-8") as handle:
+            config = yaml.safe_load(handle) or {}
+        categories = config.get("arxiv", {}).get("categories", [])
+        if categories:
+            return [str(category).strip() for category in categories if str(category).strip()]
+    except Exception as exc:
+        print(f"Could not read arXiv config {config_path}: {exc}")
+
+    return DEFAULT_CATEGORIES
 
 
 class ArxivSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        categories = os.environ.get("CATEGORIES", "cs.CV")
-        categories = categories.split(",")
+        categories = load_configured_categories()
         # 保存目标分类列表，用于后续验证
         self.target_categories = set(map(str.strip, categories))
         self.start_urls = [

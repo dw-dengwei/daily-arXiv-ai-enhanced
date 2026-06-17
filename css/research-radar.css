@@ -1,0 +1,164 @@
+.radar-container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.radar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.radar-toolbar h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.radar-date-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radar-date-select {
+    min-width: 180px;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+}
+
+.radar-nav-button {
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #fff;
+    color: #24292f;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.radar-nav-button:disabled {
+    color: #8c959f;
+    cursor: not-allowed;
+    background: #f6f8fa;
+}
+
+.radar-status {
+    color: #57606a;
+    margin: 16px 0;
+}
+
+.radar-archive-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 18px;
+}
+
+.radar-archive-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 999px;
+    color: #57606a;
+    background: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.radar-archive-links a.active {
+    color: #0969da;
+    border-color: #0969da;
+    background: #ddf4ff;
+}
+
+.radar-report {
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    padding: 0;
+    line-height: 1.65;
+}
+
+.radar-frame {
+    width: 100%;
+    min-height: 82vh;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.radar-report h1,
+.radar-report h2,
+.radar-report h3 {
+    color: #24292f;
+    line-height: 1.25;
+}
+
+.radar-report h1 {
+    font-size: 1.9rem;
+    margin-top: 0;
+}
+
+.radar-report h2 {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid #d8dee4;
+}
+
+.radar-report h3 {
+    margin-top: 24px;
+}
+
+.radar-report a {
+    color: #0969da;
+}
+
+.radar-report li {
+    margin: 6px 0;
+}
+
+.radar-empty {
+    border: 1px dashed #d0d7de;
+    border-radius: 8px;
+    padding: 24px;
+    color: #57606a;
+    background: #f6f8fa;
+}
+
+@media (max-width: 720px) {
+    .radar-container {
+        padding: 16px;
+    }
+
+    .radar-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .radar-date-controls {
+        flex-wrap: wrap;
+    }
+
+    .radar-date-select {
+        flex: 1 1 180px;
+    }
+
+    .radar-report {
+        padding: 0;
+    }
+
+    .radar-frame {
+        min-height: 86vh;
+    }
+}

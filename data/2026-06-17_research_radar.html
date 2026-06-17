@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Research Radar - 2026-06-17</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #eef4f8;
+      --text: #1f2937;
+      --muted: #64748b;
+      --line: #d8e0e8;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ee;
+      --must: #b42318;
+      --must-bg: #fff1f0;
+      --idea: #744210;
+      --idea-bg: #fff7df;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+    body.dark {
+      color-scheme: dark;
+      --bg: #111827;
+      --surface: #182232;
+      --surface-soft: #223044;
+      --text: #e5e7eb;
+      --muted: #a8b3c3;
+      --line: #334155;
+      --accent: #5eead4;
+      --accent-soft: #123d3a;
+      --must: #fca5a5;
+      --must-bg: #3f1d22;
+      --idea: #fde68a;
+      --idea-bg: #3d2f12;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+    a { color: inherit; }
+    .dashboard-shell {
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 24px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+    }
+    .sidebar-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .today-card { background: var(--accent-soft); }
+    .eyebrow {
+      display: block;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .sidebar h2, .sidebar h3 { margin: 0 0 10px; line-height: 1.25; }
+    .sidebar p { margin: 0; color: var(--muted); }
+    .plain-list, .rotation-list { margin: 0; padding-left: 18px; color: var(--muted); }
+    .plain-list li, .rotation-list li { margin: 8px 0; }
+    .rotation-list li.active {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .rotation-list span {
+      display: block;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .content {
+      padding: 28px;
+      max-width: 1220px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.05;
+    }
+    .hero p { max-width: 820px; color: var(--muted); margin: 0; }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .toggle {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    details.section-card > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 20px 22px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      border-bottom: 1px solid var(--line);
+    }
+    details.section-card > summary::-webkit-details-marker { display: none; }
+    .section-body { padding: 22px; }
+    .learning-list { margin: 0; padding-left: 20px; }
+    .paper-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .paper-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      min-width: 0;
+    }
+    .paper-card.featured { border-color: color-mix(in srgb, var(--accent), var(--line) 45%); }
+    .paper-card.must-read {
+      border-color: var(--must);
+      background: linear-gradient(180deg, var(--must-bg), var(--surface) 34%);
+    }
+    .paper-card h3 {
+      margin: 12px 0 6px;
+      font-size: 1.1rem;
+      line-height: 1.25;
+    }
+    .paper-card-topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .badge-row, .method-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .badge, .method-chip, .difficulty-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: var(--surface-soft);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+    .badge.topic { color: var(--accent); background: var(--accent-soft); }
+    .badge.must { color: var(--must); background: var(--must-bg); border-color: var(--must); }
+    .arxiv-link {
+      flex: 0 0 auto;
+      color: var(--accent);
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .authors, .plain-summary, .paper-details p, .reading-time {
+      color: var(--muted);
+    }
+    .paper-details {
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .paper-details summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px 18px;
+      margin-top: 12px;
+    }
+    .detail-grid h4 { margin: 0 0 4px; }
+    .detail-grid p { margin: 0; }
+    .score-grid {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .score-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 48px;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .score-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: inherit;
+    }
+    .idea-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .idea-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--idea), var(--line) 55%);
+      background: var(--idea-bg);
+    }
+    .idea-number {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--idea);
+      color: var(--surface);
+      font-weight: 900;
+    }
+    .idea-card h3 {
+      margin: 0 0 12px;
+      line-height: 1.25;
+    }
+    .idea-card dl {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 8px 12px;
+      margin: 0;
+    }
+    .idea-card dt { font-weight: 800; }
+    .idea-card dd { margin: 0; color: var(--muted); }
+    .empty-state {
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      color: var(--muted);
+      background: var(--surface-soft);
+    }
+    @media (max-width: 900px) {
+      .dashboard-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .hero { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+    }
+    @media (max-width: 560px) {
+      .content, .sidebar { padding: 16px; }
+      .paper-card-topline { flex-direction: column; }
+      .score-row { grid-template-columns: 88px 1fr 42px; }
+      .idea-card dl { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-shell">
+    
+<aside class="sidebar">
+  <div class="sidebar-card today-card">
+    <span class="eyebrow">Today's Topic</span>
+    <h2>Proteomics, pQTL, multi-omics, and osteoarthritis biology</h2>
+    <p>Multi-omics and protein genetics can connect epidemiological findings to mechanisms, biomarkers, and therapeutic targets for osteoarthritis and cardiometabolic disease.
+</p>
+  </div>
+  <div class="sidebar-card">
+    <h3>Previous topics</h3>
+    <ul class="plain-list"><li>Genomic SEM, MR, and causal inference</li>
+<li>PRS and cross-ancestry genetic prediction</li>
+<li>Exploratory frontier day</li></ul>
+  </div>
+  <div class="sidebar-card">
+    <h3>Weekly rotation</h3>
+    <ol class="rotation-list"><li><span>Day 1</span>PRS and cross-ancestry genetic prediction</li><li><span>Day 2</span>Genomic SEM, MR, and causal inference</li><li class="active"><span>Day 3</span>Proteomics, pQTL, multi-omics, and osteoarthritis biology</li><li><span>Day 4</span>Clinical prediction, survival modelling, and risk-score evaluation</li><li><span>Day 5</span>Multimodal AI, cross-attention, transformers, MLPs, and representation learning</li><li><span>Day 6</span>Wearables, EHR, and digital epidemiology</li><li><span>Day 7</span>Exploratory frontier day</li></ol>
+  </div>
+</aside>
+
+    <main class="content">
+      <header class="hero">
+        <div>
+          <span class="eyebrow">Daily Research Radar - 2026-06-17</span>
+          <h1>Proteomics, pQTL, multi-omics, and osteoarthritis biology</h1>
+          <p>Multi-omics and protein genetics can connect epidemiological findings to mechanisms, biomarkers, and therapeutic targets for osteoarthritis and cardiometabolic disease.
+</p>
+        </div>
+        <div class="toolbar">
+          <button id="darkModeToggle" class="toggle" type="button">Dark mode</button>
+        </div>
+      </header>
+
+      <details class="section-card" open>
+        <summary>Today's learning focus</summary>
+        <div class="section-body">
+          <ul class="learning-list"><li>Track pQTL resources, proteomic platforms, and colocalisation evidence.</li>
+<li>Notice work connecting extracellular matrix, inflammation, and cartilage biology.</li>
+<li>Look for multi-omics integration strategies that could be reused in UKB-PPP or OAI.</li></ul>
+        </div>
+      </details>
+
+      <details class="section-card" open>
+        <summary>Read these first</summary>
+        <div class="section-body paper-grid">
+<article class="paper-card featured">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.CV</span>
+<span class="badge topic">Clinical prediction and survival modelling</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.18123v1" target="_blank" rel="noopener">arXiv 2606.18123v1</a>
+  </div>
+  <h3>Predicting Immune Biomarkers with MultiModal Mixture-of-Expert Pathology Foundation Models Empowers Precision Oncology</h3>
+  <p class="authors">Tianyu Liu, Ziqing Wang, Zhaokang Liang, Tong Ding, Peter Humphrey, Lorraine Colón-Cartagena, Emily Ling-Lin Pai, Kenneth Tou En Chang, et al.</p>
+  <p class="plain-summary">Predicting immune biomarkers associated with the tumor immune microenvironment (TIME) is critical for advancing precision oncology, yet existing approaches are largely limited to single image modalities and suffer from insufficient resol...</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">clinical</span><span class="method-chip">foundation model</span><span class="method-chip">framework</span><span class="method-chip">model</span></div>
+  <details class="paper-details" open>
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, clinical, foundation model, framework, model.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, clinical, foundation model, framework.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;Predicting Immune Biomarkers with MultiModal Mixture-of-Expert Pathology Foundation Models Empowers Precision Oncology&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:80%"></div></div><strong>8/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:60%"></div></div><strong>6/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+
+
+<article class="paper-card featured">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.CV</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.17809v1" target="_blank" rel="noopener">arXiv 2606.17809v1</a>
+  </div>
+  <h3>Million-scale multimodal pollen microscopy with expert-guided foundation models</h3>
+  <p class="authors">András Biricz, Björn Gedda, Donát Magyar, Antonio Spanu, János Fillinger, Péter Pollner, István Csabai</p>
+  <p class="plain-summary">Automated pollen identification from microscopy remains a bottleneck in aerobiology, palaeoecology and biodiversity monitoring, because scalable systems must generalise across specimen preparation, scanner settings and geographic origins...</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">model</span><span class="method-chip">multimodal</span></div>
+  <details class="paper-details" open>
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, foundation model, model, multimodal.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, foundation model, model, multimodal.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;Million-scale multimodal pollen microscopy with expert-guided foundation models&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:60%"></div></div><strong>6/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+
+
+<article class="paper-card featured">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.AI</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge topic">Wearables and digital epidemiology</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.18147v1" target="_blank" rel="noopener">arXiv 2606.18147v1</a>
+  </div>
+  <h3>WEQA: Wearable hEalth Question Answering with Query-Adaptive Agentic Reasoning</h3>
+  <p class="authors">Yuwei Zhang, Tong Xia, Bianca Emmerich, Yu Yvonne Wu, Dimitris Spathis, Xin Liu, Daniel McDuff, Cecilia Mascolo</p>
+  <p class="plain-summary">Language models are remarkably capable at medical question answering, in some cases surpassing the accuracy of general physicians.</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">clinical</span><span class="method-chip">foundation model</span><span class="method-chip">framework</span><span class="method-chip">model</span></div>
+  <details class="paper-details" open>
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, clinical, foundation model, framework, model.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, clinical, foundation model, framework.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;WEQA: Wearable hEalth Question Answering with Query-Adaptive Agentic Reasoning&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+</div>
+      </details>
+
+      <details class="section-card">
+        <summary>Other relevant papers</summary>
+        <div class="section-body paper-grid">
+<article class="paper-card">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.RO</span>
+<span class="badge category">cs.CV</span>
+<span class="badge category">cs.LG</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.17846v1" target="_blank" rel="noopener">arXiv 2606.17846v1</a>
+  </div>
+  <h3>Qwen-RobotManip Technical Report: Alignment Unlocks Scale for Robotic Manipulation Foundation Models</h3>
+  <p class="authors">Haoqi Yuan, Zhixuan Liang, Anzhe Chen, Ye Wang, Haoyang Li, Pei Lin, Yiyang Huang, Zixing Lei, et al.</p>
+  <p class="plain-summary">Foundation models in language and multimodality achieve strong generalization by aligning heterogeneous data under a unified formulation and training at scale.</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">foundation model</span><span class="method-chip">framework</span><span class="method-chip">model</span><span class="method-chip">multimodal</span></div>
+  <details class="paper-details" >
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, foundation model, framework, model, multimodal.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, foundation model, framework, model.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;Qwen-RobotManip Technical Report: Alignment Unlocks Scale for Robotic Manipulation Foundation Models&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:40%"></div></div><strong>4/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+
+
+<article class="paper-card">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.CV</span>
+<span class="badge category">cs.AI</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.17702v1" target="_blank" rel="noopener">arXiv 2606.17702v1</a>
+  </div>
+  <h3>SegTME-UNI2: A Foundation Model-Based Framework for Generalisable Multiclass Cell Segmentation and LLM-Driven Tumour Microenvironment Characterisation in Histopathology</h3>
+  <p class="authors">Wan Siti Halimatul Munirah Wan Ahmad, Faris Syahmi Samidi, Mohammad Badal Ahmmed, Vimal Angela Thiviyanathan, Selvam James Thavaraj, Anwar P. P. Abdul Majeed</p>
+  <p class="plain-summary">Characterising the tumour microenvironment (TME) from routine H&amp;E-stained histology images requires simultaneous cell segmentation, feature extraction, and interpretable clinical reporting.</p>
+  <div class="method-row"><span class="method-chip">clinical</span><span class="method-chip">foundation model</span><span class="method-chip">framework</span><span class="method-chip">model</span></div>
+  <details class="paper-details" >
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through clinical, foundation model, framework, model.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches clinical, foundation model, framework, model.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;SegTME-UNI2: A Foundation Model-Based Framework for Generalisable Multiclass Cell Segmentation and LLM-Driven Tumour Microenvironment Characterisation in Histopathology&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:60%"></div></div><strong>6/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:10%"></div></div><strong>1/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+
+
+<article class="paper-card">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.LG</span>
+<span class="badge category">cs.AI</span>
+<span class="badge category">q-bio.QM</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.17668v1" target="_blank" rel="noopener">arXiv 2606.17668v1</a>
+  </div>
+  <h3>ASTEROID: A Spatiotemporal Information Transformer for Forecasting Multi-Step Time Series of Molecular Dynamics</h3>
+  <p class="authors">Kexin Wu, Luonan Chen, Renxiao Wang</p>
+  <p class="plain-summary">Molecular dynamics (MD) simulation is computationally demanding, particularly for large-scale systems requiring long-term analysis.</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">framework</span><span class="method-chip">method</span><span class="method-chip">model</span><span class="method-chip">prediction</span></div>
+  <details class="paper-details" >
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, framework, method, model, prediction.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, framework, method, model.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;ASTEROID: A Spatiotemporal Information Transformer for Forecasting Multi-Step Time Series of Molecular Dynamics&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:10%"></div></div><strong>1/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+
+
+<article class="paper-card">
+  <div class="paper-card-topline">
+    <div class="badge-row"><span class="badge category">cs.CV</span>
+<span class="badge topic">Multimodal AI and deep learning</span>
+<span class="badge priority">Optional</span></div>
+    <a class="arxiv-link" href="http://arxiv.org/abs/2606.17713v1" target="_blank" rel="noopener">arXiv 2606.17713v1</a>
+  </div>
+  <h3>Heterogeneous SAR-optical fusion for near-real-time land use and land cover mapping under cloud contamination: A novel framework and global benchmark dataset</h3>
+  <p class="authors">Jiangong Xu, Weibao Xue, Xiaoyu Yu, Jun Pan, Xinlian Lianga, Mi Wang</p>
+  <p class="plain-summary">Optical remote sensing imagery is frequently degraded by cloud and cloud-shadow contamination, which limits its reliability for near-real-time land use and land cover (LULC) mapping.</p>
+  <div class="method-row"><span class="method-chip">benchmark</span><span class="method-chip">framework</span><span class="method-chip">method</span><span class="method-chip">model</span><span class="method-chip">transformer</span></div>
+  <details class="paper-details" >
+    <summary>Why this matters</summary>
+    <div class="detail-grid">
+      <section>
+        <h4>Technical summary</h4>
+        <p>This paper appears relevant through benchmark, framework, method, model, novel.</p>
+      </section>
+      <section>
+        <h4>Why read it</h4>
+        <p>Relevant to Proteomics, pQTL, multi-omics, and osteoarthritis biology because it matches benchmark, framework, method, model.</p>
+      </section>
+      <section>
+        <h4>Connection to my work</h4>
+        <p>Use it to compare methods, datasets, or assumptions against ongoing genetic epidemiology and prediction work.</p>
+      </section>
+      <section>
+        <h4>Research idea</h4>
+        <p>Test whether the approach in &#x27;Heterogeneous SAR-optical fusion for near-real-time land use and land cover mapping under cloud contamination: A novel framework and global benchmark dataset&#x27; can be adapted to proteomics, pqtl, multi-omics, and osteoarthritis biology using a well-phenotyped cohort.</p>
+      </section>
+    </div>
+  </details>
+  <details class="paper-details compact">
+    <summary>Scores and reading plan</summary>
+    <div class="score-grid">
+      <div class="score-row"><span>Topic</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Personal</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:10%"></div></div><strong>1/10</strong></div>
+      <div class="score-row"><span>Novelty</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:90%"></div></div><strong>9/10</strong></div>
+      <div class="score-row"><span>Translational</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:0%"></div></div><strong>0/10</strong></div>
+      <div class="score-row"><span>Ideas</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:50%"></div></div><strong>5/10</strong></div>
+      <div class="score-row"><span>Final</span><div class="score-track" aria-hidden="true"><div class="score-fill" style="width:30%"></div></div><strong>3/10</strong></div>
+    </div>
+    <p class="reading-time">Estimated reading time: <strong>20 min</strong></p>
+  </details>
+</article>
+</div>
+      </details>
+
+      <details class="section-card" open>
+        <summary>Idea Bank</summary>
+        <div class="section-body idea-grid">
+<article class="idea-card difficulty-ambitious">
+  <div class="idea-number">1</div>
+  <div>
+    <h3>Can ideas from &#x27;Predicting Immune Biomarkers with MultiModal Mixture-of-Expert Pathology Foundation Models Empowers Precision Oncology&#x27; improve multimodal prediction for osteoarthritis or cardiometabolic outcomes?</h3>
+    <dl>
+      <dt>Data</dt><dd>UK Biobank, All of Us, OAI, UKB-PPP, public GWAS and pQTL resources</dd>
+      <dt>Method</dt><dd>Multimodal deep learning, cross-attention, Coxnet or transformer baselines</dd>
+      <dt>Publishable because</dt><dd>A strong paper is possible if the method is benchmarked against simpler clinical and genetic models.</dd>
+      <dt>Difficulty</dt><dd><span class="difficulty-pill">ambitious</span></dd>
+    </dl>
+  </div>
+</article>
+
+
+<article class="idea-card difficulty-medium">
+  <div class="idea-number">2</div>
+  <div>
+    <h3>Which representation-learning features are stable enough for epidemiological interpretation rather than only benchmark performance?</h3>
+    <dl>
+      <dt>Data</dt><dd>UK Biobank tabular/EHR data, wearable accelerometry, proteomics</dd>
+      <dt>Method</dt><dd>Representation learning, external validation, calibration, subgroup analysis</dd>
+      <dt>Publishable because</dt><dd>It links modern AI methods to reproducibility and clinical utility.</dd>
+      <dt>Difficulty</dt><dd><span class="difficulty-pill">medium</span></dd>
+    </dl>
+  </div>
+</article>
+
+
+<article class="idea-card difficulty-easy">
+  <div class="idea-number">3</div>
+  <div>
+    <h3>Can today&#x27;s proteomics, pqtl, multi-omics, and osteoarthritis biology papers suggest a small, publishable methods note for genetic epidemiology workflows?</h3>
+    <dl>
+      <dt>Data</dt><dd>Public GWAS, pQTL, UK Biobank example phenotypes</dd>
+      <dt>Method</dt><dd>Benchmarking, sensitivity analysis, transparent reporting checklist</dd>
+      <dt>Publishable because</dt><dd>A focused methods note could be fast to execute and valuable for applied researchers.</dd>
+      <dt>Difficulty</dt><dd><span class="difficulty-pill">easy</span></dd>
+    </dl>
+  </div>
+</article>
+</div>
+      </details>
+
+      <details class="section-card">
+        <summary>Weekly learning trajectory</summary>
+        <div class="section-body">
+          <p>Yesterday's cycle topic was <strong>Genomic SEM, MR, and causal inference</strong>. Today's focus prepares the next step, <strong>Clinical prediction, survival modelling, and risk-score evaluation</strong>, by connecting methods, datasets, and disease questions across the week.</p>
+        </div>
+      </details>
+    </main>
+  </div>
+  <script>
+    const storedTheme = localStorage.getItem('researchRadarTheme');
+    if (storedTheme === 'dark') document.body.classList.add('dark');
+    const toggle = document.getElementById('darkModeToggle');
+    function syncToggleLabel() {
+      toggle.textContent = document.body.classList.contains('dark') ? 'Light mode' : 'Dark mode';
+    }
+    toggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('researchRadarTheme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      syncToggleLabel();
+    });
+    syncToggleLabel();
+  </script>
+</body>
+</html>

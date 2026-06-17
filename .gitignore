@@ -8,6 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+.uv-cache/
+.env
 ai/.env
 test/*
 .idea/

@@ -1,0 +1,83 @@
+cycle:
+  anchor_date: "2026-06-15"
+  topics:
+    - id: prs_cross_ancestry_prediction
+      linked_profile_topic: prs_statistical_genetics
+      name: PRS and cross-ancestry genetic prediction
+      why_it_matters: >
+        PRS methods and cross-ancestry transfer are central to independent
+        research questions in genetic epidemiology, health equity, and clinical
+        translation.
+      learning_points:
+        - Track how new PRS methods handle ancestry, LD, and external validation.
+        - Look for links between genetic architecture and usable clinical prediction.
+        - Compare Bayesian, penalised, and ensemble approaches for portability.
+        - Identify datasets and validation designs that could support publishable work.
+
+    - id: genomic_sem_mr_causal_inference
+      linked_profile_topic: genomic_sem_causal_inference
+      name: Genomic SEM, MR, and causal inference
+      why_it_matters: >
+        Causal and latent-variable methods can turn association resources into
+        interpretable mechanisms and drug-target hypotheses.
+      learning_points:
+        - Learn when genetic correlation, GSEM, MR, and colocalisation answer different questions.
+        - Watch for stronger sensitivity analyses around pleiotropy and mediation.
+        - Prioritise drug-target and multi-trait designs that connect to cardiometabolic or OA biology.
+
+    - id: proteomics_pqtl_multiomics_oa
+      linked_profile_topic: multiomics_proteomics_oa
+      name: Proteomics, pQTL, multi-omics, and osteoarthritis biology
+      why_it_matters: >
+        Multi-omics and protein genetics can connect epidemiological findings to
+        mechanisms, biomarkers, and therapeutic targets for osteoarthritis and
+        cardiometabolic disease.
+      learning_points:
+        - Track pQTL resources, proteomic platforms, and colocalisation evidence.
+        - Notice work connecting extracellular matrix, inflammation, and cartilage biology.
+        - Look for multi-omics integration strategies that could be reused in UKB-PPP or OAI.
+
+    - id: clinical_prediction_survival_risk
+      linked_profile_topic: clinical_prediction_survival
+      name: Clinical prediction, survival modelling, and risk-score evaluation
+      why_it_matters: >
+        Early-career independence will benefit from rigorous, clinically legible
+        prediction studies with calibration, discrimination, and transportability.
+      learning_points:
+        - Compare survival, competing-risk, and longitudinal prediction designs.
+        - Focus on calibration, C-index, time-dependent AUC, and decision usefulness.
+        - Identify how PRS, proteins, EHR, and wearables can improve risk stratification.
+
+    - id: multimodal_ai_representation_learning
+      linked_profile_topic: multimodal_ai_deep_learning
+      name: Multimodal AI, cross-attention, transformers, MLPs, and representation learning
+      why_it_matters: >
+        Multimodal models may help combine genetics, omics, EHR, imaging, and
+        wearable data, but only if the methods are evaluated against biomedical
+        prediction and inference needs.
+      learning_points:
+        - Prioritise papers that fuse heterogeneous biomedical or tabular data.
+        - Distinguish useful representation learning from generic LLM work.
+        - Look for architectures that can be adapted to clinical prediction or multi-omics.
+
+    - id: wearables_ehr_digital_epidemiology
+      linked_profile_topic: wearables_digital_epidemiology
+      name: Wearables, EHR, and digital epidemiology
+      why_it_matters: >
+        Wearables and EHR data can support longitudinal risk prediction and
+        digital biomarkers that complement genetics and omics.
+      learning_points:
+        - Track methods for noisy longitudinal health data and passive sensing.
+        - Look for external validation, missingness handling, and clinically interpretable endpoints.
+        - Identify ways to combine activity signals with PRS, proteins, or EHR features.
+
+    - id: exploratory_frontier
+      linked_profile_topic: null
+      name: Exploratory frontier day
+      why_it_matters: >
+        A protected exploratory day keeps the radar open to surprising methods
+        from AI, statistical genetics, biomedical ML, and causal inference.
+      learning_points:
+        - Scan for papers that introduce a transferable method rather than a narrow benchmark.
+        - Prefer work that could seed a new independent research direction.
+        - Keep generic AI papers only when they have clear biomedical, causal, omics, or prediction value.

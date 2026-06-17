@@ -9,6 +9,89 @@
 
 This innovative tool transforms how you stay updated with arXiv papers by combining automated crawling with AI-powered summarization.
 
+## Daily Research Radar
+
+This fork adds a personalised **Daily Research Radar** for biomedical and genetic epidemiology reading. It keeps the existing arXiv crawler and AI-enhanced JSONL workflow, then adds a second ranking/reporting pass that:
+
+- monitors machine-learning, statistics, quantitative-biology, and retrieval categories: `cs.LG`, `stat.ML`, `cs.AI`, `cs.CL`, `cs.CV`, `q-bio.GN`, `q-bio.QM`, `stat.AP`, `stat.ME`, and `cs.IR`
+- scores papers against `research_profile.yaml`
+- rotates the main learning theme using `daily_topic_schedule.yaml`
+- recommends only 2-3 key papers plus 5-10 secondary papers
+- writes archival Markdown to `data/YYYY-MM-DD_research_radar.md`
+- writes a standalone responsive HTML dashboard to `data/YYYY-MM-DD_research_radar.html`
+- stores scored radar data in `data/YYYY-MM-DD_research_radar_enhanced.jsonl`
+- records recent recommendations in `data/research_radar_history.json` to avoid repeated recommendations within 30 days
+- exposes the latest HTML dashboard through `research-radar.html` on GitHub Pages, with Markdown fallback for older reports
+
+### Research Radar setup
+
+Required GitHub secrets:
+
+- `OPENAI_API_KEY`: API key for the LLM provider
+- `SMTP_USERNAME`: SMTP account username for email notification
+- `SMTP_PASSWORD`: SMTP account password or app password for email notification
+
+Required GitHub variables:
+
+- `OPENAI_BASE_URL`: use `https://api.deepseek.com`
+- `MODEL_NAME`: use `deepseek-chat`
+- `SMTP_HOST`: SMTP server hostname
+- `SMTP_PORT`: SMTP server port, for example `465` or `587`
+- `EMAIL_FROM`: sender address used by the workflow
+- `EMAIL_TO`: recipient address, for example `weijie.j.liu@gmail.com`
+
+Recommended GitHub variables:
+
+- `CATEGORIES`: comma-separated arXiv categories; leave unset to use `research_profile.yaml`
+- `DAILY_TOPIC_MODE`: `rotate`, `fixed`, or `exploratory`
+- `MAX_KEY_PAPERS_PER_DAY`: default `3`
+- `MAX_OTHER_PAPERS_PER_DAY`: default `8`
+- `SERENDIPITY_RATIO`: default `0.25`
+- `RESEARCH_PROFILE_PATH`: default `research_profile.yaml`
+- `RADAR_MAX_WORKERS`: default `4`
+- `LLM_TIMEOUT_SECONDS`: default `60`
+- `ENABLE_EMAIL`: set to `false` to disable email notifications while keeping daily report generation enabled
+
+Daily automation is defined in `.github/workflows/run.yml`. GitHub cron is UTC, so the workflow uses 07:00 and 08:00 UTC schedules plus a Europe/London guard; only the run matching 08:00 UK time generates and emails the report. Manual runs are available from the GitHub Actions tab through **Run workflow**.
+
+The workflow publishes daily report artifacts to the `data` branch, updates the main `research-radar.html` dashboard/index files when needed, then emails the daily report link and dashboard link. To test manually in GitHub, open **Actions -> Daily Research Radar -> Run workflow**. To disable email, set repository variable `ENABLE_EMAIL=false`; leave it unset or set it to any other value to send email.
+
+Edit `research_profile.yaml` to change long-term interests, arXiv categories, topic keywords, and scoring keywords. Edit `daily_topic_schedule.yaml` to change the seven-day rotating topic cycle, the anchor date, learning points, or the reason each topic matters.
+
+Run locally after installing dependencies:
+
+```bash
+uv sync
+source .venv/bin/activate
+python daily_research_radar.py --date today
+python daily_research_radar.py --days-back 7
+python daily_research_radar.py --start-date 2026-06-01 --end-date 2026-06-17
+```
+
+If `data/YYYY-MM-DD.jsonl` does not exist, the command fetches arXiv papers from the configured categories for that date and then generates the report. Use `--skip-existing` during backfills to avoid regenerating dates that already have enhanced JSONL, Markdown, and HTML outputs. To use a file already produced by the existing crawler or AI enhancer for a single date:
+
+```bash
+python daily_research_radar.py --date 2026-06-17 --data data/2026-06-17_AI_enhanced_English.jsonl
+```
+
+Example report structure:
+
+```markdown
+# Daily Research Radar - 2026-06-17
+
+## Today's main topic
+Clinical prediction, survival modelling, and risk-score evaluation
+
+## Read these first
+2-3 papers with summaries, relevance, research-use notes, scores, and reading-time labels.
+
+## Other relevant papers
+5-10 shorter recommendations.
+
+## Idea generation
+3 concrete project ideas with data sources, methods, publishability, and difficulty.
+```
+
 
 ## ✨ Key Features
 
@@ -54,17 +137,20 @@ Otherwise, you can watch the video above first and directly use this repo in htt
 1. Fork this repo to your own account and delete my own information in [buy-me-a-coffee](./buy-me-a-coffee/README.md).
 2. Go to: your-own-repo -> Settings -> Secrets and variables -> Actions
 3. Go to Secrets. Secrets are encrypted and used for sensitive data
-4. Create two repository secrets named `OPENAI_API_KEY` and `OPENAI_BASE_URL`, and input corresponding values.
+4. Create the repository secret `OPENAI_API_KEY`. For email notifications, also create `SMTP_USERNAME` and `SMTP_PASSWORD`.
 5. [Optional] Set a password in `secrets.ACCESS_PASSWORD` if you do not wish others to access your page. (see https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/pull/64)
 6. Go to Variables. Variables are shown as plain text and are used for non-sensitive data
 7. Create the following repository variables:
    1. `CATEGORIES`: separate the categories with ",", such as "cs.CL, cs.CV"
-   2. `LANGUAGE`: such as "Chinese" or "English"
+   2. `OPENAI_BASE_URL`: such as "https://api.deepseek.com"
    3. `MODEL_NAME`: such as "deepseek-chat"
-   4. `EMAIL`: your email for push to GitHub
-   5. `NAME`: your name for push to GitHub
-8. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
-9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
+   4. `SMTP_HOST`: SMTP server hostname
+   5. `SMTP_PORT`: SMTP server port
+   6. `EMAIL_FROM`: sender address for notification email and workflow commits
+   7. `EMAIL_TO`: recipient address for notification email
+   8. `ENABLE_EMAIL`: optional; set to `false` to disable email notification
+8. Go to your-own-repo -> Actions -> Daily Research Radar
+9. You can manually click **Run workflow** to test if it works well. By default, this action will automatically run every day at 08:00 UK time. You can modify it in `.github/workflows/run.yml`
 10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 </details>
 

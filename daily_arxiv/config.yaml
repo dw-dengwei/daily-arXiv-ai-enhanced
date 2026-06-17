@@ -1,7 +1,15 @@
 arxiv:
   categories:  # 文章类型
-    - cs.CV
+    - cs.LG
+    - stat.ML
+    - cs.AI
     - cs.CL
+    - cs.CV
+    - q-bio.GN
+    - q-bio.QM
+    - stat.AP
+    - stat.ME
+    - cs.IR
 
 llm:
   model_name: 'deepseek-chat'  # 使用的LLM模型

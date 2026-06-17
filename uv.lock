@@ -208,6 +208,7 @@ dependencies = [
     { name = "dotenv" },
     { name = "langchain" },
     { name = "langchain-openai" },
+    { name = "pyyaml" },
     { name = "scrapy" },
     { name = "tqdm" },
 ]
@@ -218,6 +219,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "langchain", specifier = ">=0.3.20" },
     { name = "langchain-openai", specifier = ">=0.3.9" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "scrapy", specifier = ">=2.12.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
