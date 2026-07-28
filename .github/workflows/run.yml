@@ -215,28 +215,6 @@ jobs:
           esac
         fi
         
-    - name: Inject repository info into data-config.js
-      if: steps.dedup_check.outputs.has_new_content == 'true'
-      run: |
-        echo "注入仓库信息到 data-config.js... / Injecting repository info into data-config.js..."
-        
-        # 获取仓库信息 / Get repository information
-        REPO_OWNER="${{ github.repository_owner }}"
-        REPO_NAME="${{ github.event.repository.name }}"
-        
-        echo "仓库所有者: $REPO_OWNER / Repository owner: $REPO_OWNER"
-        echo "仓库名称: $REPO_NAME / Repository name: $REPO_NAME"
-        
-        # 注入仓库信息到 data-config.js / Inject repository info into data-config.js
-        if [ -f "js/data-config.js" ]; then
-          sed -i "s/PLACEHOLDER_REPO_OWNER/$REPO_OWNER/g" js/data-config.js
-          sed -i "s/PLACEHOLDER_REPO_NAME/$REPO_NAME/g" js/data-config.js
-          echo "✅ 仓库信息已注入到 js/data-config.js / Repository info injected into js/data-config.js"
-        else
-          echo "❌ ERROR: js/data-config.js not found!"
-          exit 1
-        fi
-
     - name: Commit code changes to main branch
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
