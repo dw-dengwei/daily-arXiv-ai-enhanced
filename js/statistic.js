@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchGitHubStats() {
   try {
-    const response = await fetch('https://api.github.com/repos/dw-dengwei/daily-arXiv-ai-enhanced');
+    const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(DATA_CONFIG.repoOwner)}/${encodeURIComponent(DATA_CONFIG.repoName)}`);
     const data = await response.json();
     const starCount = data.stargazers_count;
     const forkCount = data.forks_count;
@@ -442,9 +442,9 @@ async function loadPapersByDateRange(startDate, endDate) {
         <div class="statistics-card">
           <div class="keyword-list">
             ${keywordCloudData.map((item, index) => `
-              <div class="keyword-item" onclick="showRelatedPapers('${item.text}')">
+              <div class="keyword-item" data-keyword="${escapeHtml(item.text)}">
                 <span class="keyword-rank">${index + 1}</span>
-                <span class="keyword-text">${item.text}</span>
+                <span class="keyword-text">${escapeHtml(item.text)}</span>
                 <span class="keyword-count">${allKeywords.get(item.text)}</span>
               </div>
             `).join('')}
@@ -464,6 +464,10 @@ async function loadPapersByDateRange(startDate, endDate) {
         ` : ''}
       </div>
     `;
+
+    container.querySelectorAll('.keyword-item').forEach(item => {
+      item.addEventListener('click', () => showRelatedPapers(item.dataset.keyword));
+    });
 
     // 只在日期范围模式下创建趋势图
     if (startDate !== endDate) {
@@ -708,7 +712,7 @@ async function loadPapersByDateRange(startDate, endDate) {
     container.innerHTML = `
       <div class="loading-container">
         <p>Loading data fails. Please retry.</p>
-        <p>Error messages: ${error.message}</p>
+        <p>Error messages: ${escapeHtml(error.message)}</p>
       </div>
     `;
   }
@@ -723,13 +727,17 @@ function parseJsonlData(jsonlText, date) {
     try {
       const paper = JSON.parse(line);
       
-      if (!paper.categories) {
+      const rawCategories = Array.isArray(paper.categories)
+        ? paper.categories
+        : (paper.categories ? [paper.categories] : []);
+      const matchedCategories = Array.isArray(paper.matched_categories)
+        ? paper.matched_categories
+        : (paper.matched_category ? [paper.matched_category] : []);
+      const allCategories = [...new Set([...matchedCategories, ...rawCategories])];
+      const primaryCategory = matchedCategories[0] || allCategories[0];
+      if (!primaryCategory) {
         return;
       }
-      
-      let allCategories = Array.isArray(paper.categories) ? paper.categories : [paper.categories];
-      
-      const primaryCategory = allCategories[0];
       
       if (!result[primaryCategory]) {
         result[primaryCategory] = [];
@@ -787,12 +795,12 @@ function showRelatedPapers(keyword) {
     const papersHTML = relatedPapers.map((paper, index) => `
         <div class="paper-card">
             <div class="paper-number">${index + 1}</div>
-            <a href="${paper.url}" target="_blank" class="paper-title">${paper.title}</a>
-            <div class="paper-authors">${paper.authors}</div>
+            <a href="${safeExternalUrl(paper.url, ['arxiv.org', 'export.arxiv.org'])}" target="_blank" rel="noopener noreferrer" class="paper-title">${escapeHtml(paper.title)}</a>
+            <div class="paper-authors">${escapeHtml(paper.authors)}</div>
             <div class="paper-categories">
-                ${paper.category.map(cat => `<span class="category-tag">${cat}</span>`).join('')}
+                ${paper.category.map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
             </div>
-            <div class="paper-summary">${paper.summary}</div>
+            <div class="paper-summary">${escapeHtml(paper.summary)}</div>
         </div>
     `).join('');
     

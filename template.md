@@ -22,7 +22,7 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
    5. `NAME`: your name for push to github
 7. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
 8. You can manually click **Run workflow** to test if it works well (it may takes about one hour). 
-By default, this action will automatically run every day
+By default, this action runs on weekdays
 You can modify it in `.github/workflows/run.yml`
 9. If you wish to modify the content in `README.md`, do not directly edit README.md. You should edit `template.md`.
 

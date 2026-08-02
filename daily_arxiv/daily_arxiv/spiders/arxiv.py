@@ -2,17 +2,20 @@ import scrapy
 import os
 import re
 
+from ..record_utils import normalize_arxiv_id
+
 
 class ArxivSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         categories = os.environ.get("CATEGORIES", "cs.CV")
-        categories = categories.split(",")
+        categories = [category.strip() for category in categories.split(",") if category.strip()]
         # 保存目标分类列表，用于后续验证
-        self.target_categories = set(map(str.strip, categories))
+        self.target_categories = tuple(dict.fromkeys(categories))
         self.start_urls = [
             f"https://arxiv.org/list/{cat}/new" for cat in self.target_categories
         ]  # 起始URL（计算机科学领域的最新论文）
+        self.seen_ids: set[str] = set()
 
     name = "arxiv"  # 爬虫名称
     allowed_domains = ["arxiv.org"]  # 允许爬取的域名
@@ -41,7 +44,10 @@ class ArxivSpider(scrapy.Spider):
             if not abstract_link:
                 continue
                 
-            arxiv_id = abstract_link.split("/")[-1]
+            arxiv_id = normalize_arxiv_id(abstract_link)
+            if arxiv_id in self.seen_ids:
+                continue
+            self.seen_ids.add(arxiv_id)
             
             # 获取对应的论文描述部分 (dd元素)
             paper_dd = paper.xpath("following-sibling::dd[1]")
@@ -66,6 +72,7 @@ class ArxivSpider(scrapy.Spider):
                     "id": arxiv_id,
                     "categories": sorted(paper_categories),
                     "matched_category": requested_category,
+                    "matched_categories": [requested_category],
                 }
                 self.logger.info(f"Found paper {arxiv_id} for {requested_category}")
             else:
@@ -75,4 +82,5 @@ class ArxivSpider(scrapy.Spider):
                     "id": arxiv_id,
                     "categories": [],
                     "matched_category": requested_category,
+                    "matched_categories": [requested_category],
                 }

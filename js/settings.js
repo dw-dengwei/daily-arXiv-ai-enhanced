@@ -127,10 +127,14 @@ function addKeywordTag(keyword) {
   // 创建新的关键词标签
   const tagElement = document.createElement('span');
   tagElement.className = 'category-button tag-appear';
-  tagElement.innerHTML = `${keyword} <button class="remove-tag">×</button>`;
-  
+  tagElement.append(document.createTextNode(`${keyword} `));
+  const removeButton = document.createElement('button');
+  removeButton.className = 'remove-tag';
+  removeButton.type = 'button';
+  removeButton.textContent = '×';
+  tagElement.appendChild(removeButton);
+
   // 添加删除按钮事件
-  const removeButton = tagElement.querySelector('.remove-tag');
   removeButton.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -180,10 +184,14 @@ function addAuthorTag(author) {
   // 创建新的作者标签
   const tagElement = document.createElement('span');
   tagElement.className = 'category-button tag-appear';
-  tagElement.innerHTML = `${author} <button class="remove-tag">×</button>`;
-  
+  tagElement.append(document.createTextNode(`${author} `));
+  const removeButton = document.createElement('button');
+  removeButton.className = 'remove-tag';
+  removeButton.type = 'button';
+  removeButton.textContent = '×';
+  tagElement.appendChild(removeButton);
+
   // 添加删除按钮事件
-  const removeButton = tagElement.querySelector('.remove-tag');
   removeButton.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -483,7 +491,7 @@ function showNotification(message, type = 'success') {
 // 获取GitHub统计数据
 async function fetchGitHubStats() {
   try {
-    const response = await fetch('https://api.github.com/repos/dw-dengwei/daily-arXiv-ai-enhanced');
+    const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(DATA_CONFIG.repoOwner)}/${encodeURIComponent(DATA_CONFIG.repoName)}`);
     const data = await response.json();
     const starCount = data.stargazers_count;
     const forkCount = data.forks_count;
@@ -495,4 +503,4 @@ async function fetchGitHubStats() {
     document.getElementById('starCount').textContent = '?';
     document.getElementById('forkCount').textContent = '?';
   }
-} 
+}
