@@ -8,6 +8,9 @@ on:
     - cron: "30 1 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 
 jobs:
   build:
@@ -182,7 +185,7 @@ jobs:
 
         # Inject hash into auth-config.js
         if [ -f "js/auth-config.js" ]; then
-          sed -i "s/PLACEHOLDER_PASSWORD_HASH/$PASSWORD_HASH/" js/auth-config.js
+          sed -i -E "s|passwordHash: '[^']*'|passwordHash: '$PASSWORD_HASH'|" js/auth-config.js
           echo "✅ Password hash injected into js/auth-config.js"
         else
           echo "❌ ERROR: js/auth-config.js not found!"
@@ -226,8 +229,8 @@ jobs:
         
         # 注入仓库信息到 data-config.js / Inject repository info into data-config.js
         if [ -f "js/data-config.js" ]; then
-          sed -i "s/PLACEHOLDER_REPO_OWNER/$REPO_OWNER/g" js/data-config.js
-          sed -i "s/PLACEHOLDER_REPO_NAME/$REPO_NAME/g" js/data-config.js
+          sed -i -E "s|repoOwner: '[^']*'|repoOwner: '$REPO_OWNER'|" js/data-config.js
+          sed -i -E "s|repoName: '[^']*'|repoName: '$REPO_NAME'|" js/data-config.js
           echo "✅ 仓库信息已注入到 js/data-config.js / Repository info injected into js/data-config.js"
         else
           echo "❌ ERROR: js/data-config.js not found!"
