@@ -12,7 +12,7 @@ const AUTH_CONFIG = {
      * SHA-256 hash of the access password
      * This will be replaced during GitHub Actions workflow execution
      */
-    passwordHash: 'DISABLED_NO_PASSWORD_SET_IN_SECRETS',
+    passwordHash: '710c120673823cfd1167030a6d32cda66b139435c44219184ca9381a27e29e59',
 
     /**
      * Session duration in milliseconds
