@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Local Authentication Setup Script
-# This script reads ACCESS_PASSWORD from .env and updates auth-config.js with the SHA-256 hash
+# This script reads ACCESS_PASSWORD from .env and writes an ignored local override.
 
 set -e
 
 echo "🔐 Setting up local authentication..."
+echo "⚠️  This is only a client-side UI gate; it does not protect public GitHub Pages data."
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
@@ -40,32 +41,27 @@ else
     fi
 fi
 
-# Backup original auth-config.js if it exists and hasn't been backed up yet
-if [ -f "js/auth-config.js" ] && [ ! -f "js/auth-config.js.backup" ]; then
-    cp js/auth-config.js js/auth-config.js.backup
-    echo "📦 Backed up original auth-config.js"
-fi
-
-# Update auth-config.js with the generated hash
-if [ -f "js/auth-config.js" ]; then
-    # Replace PLACEHOLDER_PASSWORD_HASH with actual hash
-    sed -i.tmp "s/passwordHash: '.*'/passwordHash: '$PASSWORD_HASH'/" js/auth-config.js
-    rm -f js/auth-config.js.tmp
-    echo "✅ Updated js/auth-config.js with password hash"
-else
+if [ ! -f "js/auth-config.js" ]; then
     echo "❌ Error: js/auth-config.js not found!"
     exit 1
 fi
+
+# Never modify the tracked deployment configuration. The HTML pages load this
+# ignored file after auth-config.js and before auth.js for local-only testing.
+printf '%s\n' \
+    "if (typeof AUTH_CONFIG !== 'undefined') {" \
+    "    AUTH_CONFIG.passwordHash = '$PASSWORD_HASH';" \
+    "}" > js/auth-config.local.js
+echo "✅ Wrote ignored local override: js/auth-config.local.js"
 
 echo ""
 echo "🎉 Local authentication setup complete!"
 echo ""
 echo "📝 Summary:"
-echo "  - Password hash: ${PASSWORD_HASH:0:16}..."
-echo "  - Config file: js/auth-config.js"
+echo "  - Config file: js/auth-config.local.js (ignored; local UI test only)"
 echo ""
 echo "💡 Tips:"
 echo "  - Open login.html in browser to test"
 echo "  - Use password from .env to login"
-echo "  - auth-config.js is gitignored and won't be committed"
+echo "  - The tracked auth-config.js was not modified"
 echo ""

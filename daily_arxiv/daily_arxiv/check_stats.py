@@ -1,165 +1,180 @@
 #!/usr/bin/env python3
-"""
-检查Scrapy爬取统计信息的脚本 / Script to check Scrapy crawling statistics
-用于获取去重检查的状态结果 / Used to get deduplication check status results
+"""Check whether today's arXiv records contain unseen papers."""
 
-功能说明 / Features:
-- 检查当日与昨日论文数据的重复情况 / Check duplication between today's and yesterday's paper data
-- 删除重复论文条目，保留新内容 / Remove duplicate papers, keep new content
-- 根据去重后的结果决定工作流是否继续 / Decide workflow continuation based on deduplication results
-"""
+from __future__ import annotations
+
+import argparse
 import json
-import sys
 import os
-from datetime import datetime, timedelta
+import sys
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Iterable
 
-def load_papers_data(file_path):
-    """
-    从jsonl文件中加载完整的论文数据
-    Load complete paper data from jsonl file
-    
-    Args:
-        file_path (str): JSONL文件路径 / JSONL file path
-        
-    Returns:
-        list: 论文数据列表 / List of paper data
-        set: 论文ID集合 / Set of paper IDs
-    """
-    if not os.path.exists(file_path):
-        return [], set()
-    
-    papers = []
-    ids = set()
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    data = json.loads(line)
-                    papers.append(data)
-                    ids.add(data.get('id', ''))
-        return papers, ids
-    except Exception as e:
-        print(f"Error reading {file_path}: {e}", file=sys.stderr)
+try:
+    from .record_utils import deduplicate_records, filter_new_records
+except ImportError:  # pragma: no cover - compatibility for direct execution
+    from record_utils import deduplicate_records, filter_new_records
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_papers_data(file_path: str | Path) -> tuple[list[dict], set[str]]:
+    """Load JSONL records and canonical IDs, failing on malformed data."""
+
+    path = Path(file_path)
+    if not path.exists():
         return [], set()
 
-def save_papers_data(papers, file_path):
-    """
-    保存论文数据到jsonl文件
-    Save paper data to jsonl file
-    
-    Args:
-        papers (list): 论文数据列表 / List of paper data
-        file_path (str): 文件路径 / File path
-    """
+    papers: list[dict] = []
+    ids: set[str] = set()
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise ValueError(f"invalid JSON in {path}:{line_number}") from error
+            if not isinstance(data, dict):
+                raise ValueError(f"record in {path}:{line_number} is not an object")
+            papers.append(data)
+
+    for record in deduplicate_records(papers):
+        ids.add(record["id"])
+    return papers, ids
+
+
+def save_papers_data(papers: Iterable[dict], file_path: str | Path) -> bool:
+    """Atomically save JSONL records so interrupted runs cannot publish partial data."""
+
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
             for paper in papers:
-                f.write(json.dumps(paper, ensure_ascii=False) + '\n')
+                handle.write(json.dumps(paper, ensure_ascii=False) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
         return True
-    except Exception as e:
-        print(f"Error saving {file_path}: {e}", file=sys.stderr)
+    except Exception as error:
+        if "temporary_path" in locals():
+            temporary_path.unlink(missing_ok=True)
+        print(f"Error saving {path}: {error}", file=sys.stderr)
         return False
 
-def perform_deduplication():
-    """
-    执行多日去重：删除与历史多日重复的论文条目，保留新内容
-    Perform deduplication over multiple past days
-    
-    Returns:
-        str: 去重状态 / Deduplication status
-             - "has_new_content": 有新内容 / Has new content
-             - "no_new_content": 无新内容 / No new content  
-             - "no_data": 无数据 / No data
-             - "error": 处理错误 / Processing error
-    """
 
-    today = datetime.now().strftime("%Y-%m-%d")
-    today_file = f"../data/{today}.jsonl"
-    history_days = 7  # 向前追溯几天的数据进行对比
+def _resolve_date(value: date | str | None) -> date:
+    if value is None:
+        value = os.environ.get("ARXIV_DATE")
+    if value is None:
+        return datetime.now(timezone.utc).date()
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(value)
 
-    if not os.path.exists(today_file):
+
+def perform_deduplication(
+    today: date | str | None = None,
+    data_dir: str | Path | None = None,
+    history_days: int = 7,
+) -> str:
+    """Remove historical duplicates and report whether new records remain."""
+
+    today_date = _resolve_date(today)
+    root = Path(data_dir or os.environ.get("DATA_DIR") or REPOSITORY_ROOT / "data")
+    today_file = root / f"{today_date.isoformat()}.jsonl"
+
+    if not today_file.exists():
         print("今日数据文件不存在 / Today's data file does not exist", file=sys.stderr)
         return "no_data"
 
     try:
-        today_papers, today_ids = load_papers_data(today_file)
-        print(f"今日论文总数: {len(today_papers)} / Today's total papers: {len(today_papers)}", file=sys.stderr)
-
+        today_papers, _ = load_papers_data(today_file)
+        print(
+            f"今日论文总数: {len(today_papers)} / Today's total papers: {len(today_papers)}",
+            file=sys.stderr,
+        )
         if not today_papers:
             return "no_data"
 
-        # 收集历史多日 ID 集合
-        history_ids = set()
-        for i in range(1, history_days + 1):
-            date_str = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
-            history_file = f"../data/{date_str}.jsonl"
+        history_ids: set[str] = set()
+        for offset in range(1, history_days + 1):
+            history_file = root / f"{today_date - timedelta(days=offset)}.jsonl"
             _, past_ids = load_papers_data(history_file)
             history_ids.update(past_ids)
 
-        print(f"历史{history_days}日去重库大小: {len(history_ids)} / History {history_days} days deduplication library size: {len(history_ids)}", file=sys.stderr)
+        print(
+            f"历史{history_days}日去重库大小: {len(history_ids)} / "
+            f"History {history_days} days deduplication library size: {len(history_ids)}",
+            file=sys.stderr,
+        )
 
-        duplicate_ids = today_ids & history_ids
+        new_papers = filter_new_records(today_papers, history_ids)
+        removed_count = len(today_papers) - len(new_papers)
+        print(
+            f"去重后剩余论文数: {len(new_papers)} / Remaining papers after deduplication: {len(new_papers)}",
+            file=sys.stderr,
+        )
 
-        if duplicate_ids:
-            print(f"发现 {len(duplicate_ids)} 篇历史重复论文 / Found {len(duplicate_ids)} historical duplicate papers", file=sys.stderr)
-            new_papers = [paper for paper in today_papers if paper.get('id', '') not in duplicate_ids]
+        if not new_papers:
+            today_file.unlink()
+            print(
+                f"所有论文均为重复内容，已删除今日文件 / All papers are duplicate content, today's file deleted "
+                f"(removed {removed_count})",
+                file=sys.stderr,
+            )
+            return "no_new_content"
 
-            print(f"去重后剩余论文数: {len(new_papers)} / Remaining papers after deduplication: {len(new_papers)}", file=sys.stderr)
-
-            if new_papers:
-                if save_papers_data(new_papers, today_file):
-                    print(f"已更新今日文件，移除 {len(duplicate_ids)} 篇重复论文 / Today's file updated, removed {len(duplicate_ids)} duplicate papers", file=sys.stderr)
-                    return "has_new_content"
-                else:
-                    print("保存去重后的数据失败 / Failed to save deduplicated data", file=sys.stderr)
-                    return "error"
-            else:
-                try:
-                    os.remove(today_file)
-                    print("所有论文均为重复内容，已删除今日文件 / All papers are duplicate content, today's file deleted", file=sys.stderr)
-                except Exception as e:
-                    print(f"删除文件失败: {e} / Failed to delete file: {e}", file=sys.stderr)
-                return "no_new_content"
-        else:
-            print("所有内容均为新内容 / All content is new", file=sys.stderr)
-            return "has_new_content"
-
-    except Exception as e:
-        print(f"去重处理失败: {e} / Deduplication processing failed: {e}", file=sys.stderr)
+        if not save_papers_data(new_papers, today_file):
+            return "error"
+        if removed_count:
+            print(
+                f"已移除 {removed_count} 条重复记录 / Removed {removed_count} duplicate records",
+                file=sys.stderr,
+            )
+        return "has_new_content"
+    except Exception as error:
+        print(f"去重处理失败: {error} / Deduplication processing failed: {error}", file=sys.stderr)
         return "error"
 
-def main():
-    """
-    检查去重状态并返回相应的退出码
-    Check deduplication status and return corresponding exit code
-    
-    退出码含义 / Exit code meanings:
-    0: 有新内容，继续处理 / Has new content, continue processing
-    1: 无新内容，停止工作流 / No new content, stop workflow
-    2: 处理错误 / Processing error
-    """
-    
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--date", help="UTC date in YYYY-MM-DD format")
+    parser.add_argument("--data-dir", help="Directory containing daily JSONL files")
+    parser.add_argument("--history-days", type=int, default=7)
+    args = parser.parse_args(argv)
+
     print("正在执行去重检查... / Performing intelligent deduplication check...", file=sys.stderr)
-    
-    # 执行去重处理 / Perform deduplication processing
-    dedup_status = perform_deduplication()
-    
-    if dedup_status == "has_new_content":
+    status = perform_deduplication(
+        today=args.date,
+        data_dir=args.data_dir,
+        history_days=args.history_days,
+    )
+    if status == "has_new_content":
         print("✅ 去重完成，发现新内容，继续工作流 / Deduplication completed, new content found, continue workflow", file=sys.stderr)
-        sys.exit(0)
-    elif dedup_status == "no_new_content":
+        raise SystemExit(0)
+    if status == "no_new_content":
         print("⏹️ 去重完成，无新内容，停止工作流 / Deduplication completed, no new content, stop workflow", file=sys.stderr)
-        sys.exit(1)
-    elif dedup_status == "no_data":
+        raise SystemExit(1)
+    if status == "no_data":
         print("⏹️ 今日无数据，停止工作流 / No data today, stop workflow", file=sys.stderr)
-        sys.exit(1)
-    elif dedup_status == "error":
-        print("❌ 去重处理出错，停止工作流 / Deduplication processing error, stop workflow", file=sys.stderr)
-        sys.exit(2)
-    else:
-        # 意外情况：未知状态 / Unexpected case: unknown status
-        print("❌ 未知去重状态，停止工作流 / Unknown deduplication status, stop workflow", file=sys.stderr)
-        sys.exit(2)
+        raise SystemExit(1)
+    print("❌ 去重处理出错，停止工作流 / Deduplication processing error, stop workflow", file=sys.stderr)
+    raise SystemExit(2)
+
 
 if __name__ == "__main__":
-    main() 
+    main()

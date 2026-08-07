@@ -1,19 +1,22 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # 本地测试脚本 / Local testing script
 # 主要工作流已迁移到 GitHub Actions (.github/workflows/run.yml)
 # Main workflow has been migrated to GitHub Actions (.github/workflows/run.yml)
 
 # 环境变量检查和提示 / Environment variables check and prompt
 echo "=== 本地调试环境检查 / Local Debug Environment Check ==="
-if [ -z "$TOKEN_GITHUB" ]; then
+if [ -z "${TOKEN_GITHUB:-}" ]; then
     echo "⚠️  提示：未设置 TOKEN_GITHUB / Warning: TOKEN_GITHUB not set"
     echo "可能导致 GitHub 相关功能受限 / May limit GitHub related functionalities"
-fi
+else
     echo "✅ TOKEN_GITHUB 已设置 / TOKEN_GITHUB is set"
+fi
 
 # 检查必需的环境变量 / Check required environment variables
-if [ -z "$OPENAI_API_KEY" ]; then
+if [ -z "${OPENAI_API_KEY:-}" ]; then
     echo "⚠️  提示：未设置 OPENAI_API_KEY / Warning: OPENAI_API_KEY not set"
     echo "📝 要进行完整本地调试，请设置以下环境变量 / For complete local debugging, please set the following environment variables:"
     echo ""
@@ -56,9 +59,10 @@ echo ""
 echo "=== 开始本地调试流程 / Starting Local Debug Workflow ==="
 
 # 获取当前日期 / Get current date
-today=`date -u "+%Y-%m-%d"`
+today=$(date -u "+%Y-%m-%d")
 
 echo "本地测试：爬取 $today 的arXiv论文... / Local test: Crawling $today arXiv papers..."
+mkdir -p data
 
 # 第一步：爬取数据 / Step 1: Crawl data
 echo "步骤1：开始爬取... / Step 1: Starting crawl..."
@@ -82,8 +86,10 @@ fi
 
 # 第二步：检查去重 / Step 2: Check duplicates  
 echo "步骤2：执行去重检查... / Step 2: Performing intelligent deduplication check..."
-python daily_arxiv/check_stats.py
+set +e
+python -m daily_arxiv.check_stats --date "$today" --data-dir ../data
 dedup_exit_code=$?
+set -e
 
 case $dedup_exit_code in
     0)
@@ -108,15 +114,8 @@ cd ..
 # 第三步：AI处理 / Step 3: AI processing
 if [ "$PARTIAL_MODE" = "false" ]; then
     echo "步骤3：AI增强处理... / Step 3: AI enhancement processing..."
-    cd ai
-    python enhance.py --data ../data/${today}.jsonl
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ AI处理失败 / AI processing failed"
-        exit 1
-    fi
+    python -m ai.enhance --data "data/${today}.jsonl"
     echo "✅ AI增强处理完成 / AI enhancement processing completed"
-    cd ..
 else
     echo "⏭️  跳过AI处理（部分模式）/ Skipping AI processing (partial mode)"
 fi
@@ -129,10 +128,6 @@ if [ "$PARTIAL_MODE" = "false" ] && [ -f "../data/${today}_AI_enhanced_${LANGUAG
     echo "📄 使用AI增强后的数据进行转换... / Using AI enhanced data for conversion..."
     python convert.py --data ../data/${today}_AI_enhanced_${LANGUAGE}.jsonl
     
-    if [ $? -ne 0 ]; then
-        echo "❌ Markdown转换失败 / Markdown conversion failed"
-        exit 1
-    fi
     echo "✅ AI增强版Markdown转换完成 / AI enhanced Markdown conversion completed"
     
 else
@@ -149,7 +144,9 @@ cd ..
 
 # 第五步：更新文件列表 / Step 5: Update file list
 echo "步骤5：更新文件列表... / Step 5: Updating file list..."
-ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+find data -maxdepth 1 -type f -name '*_AI_enhanced_*.jsonl' -print \
+    | sed 's|^data/||' \
+    | sort > assets/file-list.txt
 echo "✅ 文件列表更新完成 / File list updated"
 
 # 完成总结 / Completion summary

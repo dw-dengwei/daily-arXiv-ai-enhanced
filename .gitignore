@@ -9,6 +9,11 @@ wheels/
 # Virtual environments
 .venv
 ai/.env
+.env
+*.env
+js/auth-config.js.backup
+js/auth-config.local.js
+*.tmp
 test/*
 .idea/
 .cursorrules

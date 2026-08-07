@@ -2,10 +2,26 @@ import json
 import argparse
 import os
 from itertools import count
+from pathlib import Path
+
+
+def main_category(item):
+    """Return the category that produced the record, including cross-lists."""
+
+    matched = item.get("matched_categories") or item.get("matched_category")
+    if isinstance(matched, str):
+        matched = [matched]
+    if matched:
+        return matched[0]
+
+    categories = item.get("categories") or []
+    if isinstance(categories, str):
+        return categories
+    return categories[0] if categories else None
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, help="Path to the jsonline file")
+    parser.add_argument("--data", type=str, required=True, help="Path to the jsonline file")
     args = parser.parse_args()
     data = []
     preference = os.environ.get('CATEGORIES', 'cs.CV, cs.CL').split(',')
@@ -16,18 +32,21 @@ if __name__ == "__main__":
         else:
             return len(preference)
 
-    with open(args.data, "r") as f:
+    with open(args.data, "r", encoding="utf-8") as f:
         for line in f:
-            data.append(json.loads(line))
+            if line.strip():
+                data.append(json.loads(line))
 
-    categories = set([item["categories"][0] for item in data])
-    template = open("paper_template.md", "r").read()
+    categories = {category for item in data if (category := main_category(item))}
+    template_path = Path(__file__).resolve().parent / "paper_template.md"
+    template = template_path.read_text(encoding="utf-8")
     categories = sorted(categories, key=rank)
     cnt = {cate: 0 for cate in categories}
     for item in data:
-        if item["categories"][0] not in cnt.keys():
+        category = main_category(item)
+        if category not in cnt.keys():
             continue
-        cnt[item["categories"][0]] += 1
+        cnt[category] += 1
 
     markdown = f"<div id=toc></div>\n\n# Table of Contents\n\n"
     for idx, cate in enumerate(categories):
@@ -39,7 +58,7 @@ if __name__ == "__main__":
         markdown += f"# {cate} [[Back]](#toc)\n\n"
         papers = []
         for item in data:
-            if item["categories"][0] == cate:
+            if main_category(item) == cate:
                 # Safely access AI fields with default values
                 ai_data = item.get('AI', {})
                 if not ai_data or not isinstance(ai_data, dict):
@@ -52,21 +71,30 @@ if __name__ == "__main__":
                     print(f"Skipping item '{item.get('title', 'Unknown')}' due to incomplete AI fields")
                     continue
                 
+                authors = item.get("authors", [])
+                if isinstance(authors, (list, tuple)):
+                    authors = ",".join(str(author) for author in authors)
+                else:
+                    authors = str(authors)
+
                 papers.append(
                     template.format(
-                        title=item["title"],
-                        authors=",".join(item["authors"]),
-                        summary=item["summary"],
-                        url=item['abs'],
+                        title=item.get("title", "Untitled"),
+                        authors=authors,
+                        summary=item.get("summary", ""),
+                        url=item.get("abs", item.get("pdf", "")),
                         tldr=ai_data.get('tldr', ''),
                         motivation=ai_data.get('motivation', ''),
                         method=ai_data.get('method', ''),
                         result=ai_data.get('result', ''),
                         conclusion=ai_data.get('conclusion', ''),
-                        cate=item['categories'][0],
+                        cate=main_category(item),
                         idx=next(idx)
                     )
                 )
         markdown += "\n\n".join(papers)
-    with open(args.data.split('_')[0] + '.md', "w") as f:
+    data_path = Path(args.data)
+    date_stem = data_path.name.split("_AI_enhanced_", 1)[0]
+    output_path = data_path.with_name(f"{date_stem}.md")
+    with output_path.open("w", encoding="utf-8") as f:
         f.write(markdown)
