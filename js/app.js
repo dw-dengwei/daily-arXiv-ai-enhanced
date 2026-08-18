@@ -1677,9 +1677,13 @@ function formatDate(dateString) {
 }
 
 async function loadPapersByDateRange(startDate, endDate) {
+  // 兼容用户反向点击日期（先点结束日再点开始日）的场景
+  const normalizedStartDate = startDate <= endDate ? startDate : endDate;
+  const normalizedEndDate = startDate <= endDate ? endDate : startDate;
+
   // 获取日期范围内的所有有效日期
   const validDatesInRange = availableDates.filter(date => {
-    return date >= startDate && date <= endDate;
+    return date >= normalizedStartDate && date <= normalizedEndDate;
   });
   
   if (validDatesInRange.length === 0) {
@@ -1687,8 +1691,8 @@ async function loadPapersByDateRange(startDate, endDate) {
     return;
   }
   
-  currentDate = `${startDate} to ${endDate}`;
-  document.getElementById('currentDate').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  currentDate = `${normalizedStartDate} to ${normalizedEndDate}`;
+  document.getElementById('currentDate').textContent = `${formatDate(normalizedStartDate)} - ${formatDate(normalizedEndDate)}`;
   
   // 不再重置激活的关键词和作者
   // 而是保持当前选择状态
@@ -1697,7 +1701,7 @@ async function loadPapersByDateRange(startDate, endDate) {
   container.innerHTML = `
     <div class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading papers from ${formatDate(startDate)} to ${formatDate(endDate)}...</p>
+      <p>Loading papers from ${formatDate(normalizedStartDate)} to ${formatDate(normalizedEndDate)}...</p>
     </div>
   `;
   
