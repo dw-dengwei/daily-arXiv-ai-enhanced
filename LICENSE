@@ -1,13 +1,11 @@
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
+Modified Apache License
 
    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
    1. Definitions.
 
       "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
+      and distribution as defined by Sections 1 through 10 of this document.
 
       "Licensor" shall mean the copyright owner or entity authorized by
       the copyright owner that is granting the License.
@@ -162,7 +160,20 @@
       other commercial damages or losses), even if such Contributor
       has been advised of the possibility of such damages.
 
-   9. Accepting Warranty or Additional Liability. While redistributing
+   9. Disclaimer for Third-Party Content. The Work may access, analyze, 
+      or interact with content from third-party sources, such as arXiv.
+      The Licensor and Contributors make no representations or warranties 
+      regarding such third-party content, including but not limited to its accuracy, 
+      legality, non-infringement, or absence of sensitive or controversial material. 
+      You are solely responsible for ensuring that your use of the Work 
+      complies with all applicable laws and regulations, and you assume all 
+      risks associated with processing, analyzing, or distributing any 
+      third-party content, including politically sensitive content. 
+      In no event shall the Licensor or any Contributor be liable for any 
+      claims, damages, losses, or liabilities arising from or related to 
+      third-party content accessed or processed through the Work.
+
+   10. Accepting Warranty or Additional Liability. While redistributing
       the Work or Derivative Works thereof, You may choose to offer,
       and charge a fee for, acceptance of support, warranty, indemnity,
       or other liability obligations and/or rights consistent with this
@@ -175,9 +186,9 @@
 
    END OF TERMS AND CONDITIONS
 
-   APPENDIX: How to apply the Apache License to your work.
+   APPENDIX: How to apply the Modified Apache License to your work.
 
-      To apply the Apache License to your work, attach the following
+      To apply the Modified Apache License to your work, attach the following
       boilerplate notice, with the fields enclosed by brackets "[]"
       replaced with your own identifying information. (Don't include
       the brackets!)  The text should be enclosed in the appropriate
@@ -188,11 +199,9 @@
 
    Copyright [yyyy] [name of copyright owner]
 
-   Licensed under the Apache License, Version 2.0 (the "License");
+   Licensed under the Modified Apache License;
    you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,

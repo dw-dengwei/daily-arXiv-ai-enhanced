@@ -1,8 +1,14 @@
 # 🚀 daily-arXiv-ai-enhanced
 
-> Your AI-powered daily digest of arXiv papers - making research reading smarter and more personalized!
+> [!CAUTION]
+> 若您所在法域对学术数据有审查要求，谨慎运行本代码；任何二次分发版本必须履行合规审查（包括但不限于原始论文合规性、AI合规性）义务，否则一切法律后果由下游自行承担。
+
+> [!CAUTION]
+> If your jurisdiction has censorship requirements for academic data, run this code with caution; any secondary distribution version must remove the entrance accessible to China and fulfill the content review obligations, otherwise all legal consequences will be borne by the downstream.
+
 
 This innovative tool transforms how you stay updated with arXiv papers by combining automated crawling with AI-powered summarization.
+
 
 ## ✨ Key Features
 
@@ -12,7 +18,7 @@ This innovative tool transforms how you stay updated with arXiv papers by combin
 
 🤖 **Smart AI Summarization**
 - Daily paper crawling with DeepSeek-powered summaries
-- Cost-effective: Only ~0.2 CNY per day during off-peak hours
+- Cost-effective: Only ~0.2 CNY per day
 
 💫 **Smart Reading Experience**
 - Personalized paper highlighting based on your interests
@@ -20,59 +26,47 @@ This innovative tool transforms how you stay updated with arXiv papers by combin
 - Local preference storage for privacy
 - Flexible date range filtering
 
+🧩 **SKILL System**
+- Plug-and-play skill modules for customizing paper filtering
+
+⚙️ **Easy Preference Export & Integration**
+- One-click copy in Settings to export your keywords and authors configuration
+- Seamlessly combine exported preferences with SKILL for reproducible and shareable setups
+
 👉 **[Try it now!](https://dw-dengwei.github.io/daily-arXiv-ai-enhanced/)** - No installation required
 
-# Screenshots
-- Main page. Highlight the interested keywords and authors.
 
-<img src="images/index.png" alt="main-page" width="800">
 
-- Setting page. Set up keywords and authors and store them in your browser.
+https://github.com/user-attachments/assets/b25712a4-fb8d-484f-863d-e8da6922f9d7
 
-<img src="images/setting.png" alt="setting-page" width="600">
 
-- Detail page. Show details of the paper you clicked.
-
-<img src="images/details.png" alt="detail-page" width="500">
-
-- Date select. Enable selecting a single date or a date range for filtering papers (**Notice: a large date range will show lots of papers, which may lead your browser to get stuck.**).
-
-<img src="images/single-date.png" alt="single-date" width="300">
-<img src="images/range-date.png" alt="range-date" width="300">
-
-- Statistics page (*in developing*). Help you analyze papers. Extract keywords for papers in the day(s) you select. In addition, if you select a range of dates, the keyword trends will be illustrated. (Fortunately, selecting a large range of papers **will not** stuck your browser to be stuck because this page will not show all papers. It may take a few seconds to process the keywords.)
-
-<img src="images/keyword.png" alt="single-date" width="600">
-<img src="images/trends.png" alt="range-date" width="600">
 
 
 # How to use
-This repo will daily crawl arXiv papers about **cs.CV, cs.GR, cs.CL and cs.AI**, and use **DeepSeek** to summarize the papers in **Chinese**.
+This repo will daily crawl arXiv papers about **cs.CV, cs.GR, cs.CL, cs.AI, cs.CE, cs.GT, cs.IT, cs.LG**, and use **DeepSeek** to summarize the papers in **Chinese**.
 If you wish to crawl other arXiv categories, use other LLMs, or other languages, please follow the instructions.
-Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-arXiv-ai-enhanced/. Please star it if you like :)
+Otherwise, you can watch the video above first and directly use this repo in https://dw-dengwei.github.io/daily-arXiv-ai-enhanced/. Please star it if you like :)
 
-**Instructions:**
-1. Fork this repo to your own account
+<details>
+   <summary> If you want to customize categories, LLMs, or languages, click here.  </summary>
+
+## Instructions
+1. Fork this repo to your own account and delete my own information in [buy-me-a-coffee](./buy-me-a-coffee/README.md).
 2. Go to: your-own-repo -> Settings -> Secrets and variables -> Actions
 3. Go to Secrets. Secrets are encrypted and used for sensitive data
 4. Create two repository secrets named `OPENAI_API_KEY` and `OPENAI_BASE_URL`, and input corresponding values.
-5. Go to Variables. Variables are shown as plain text and are used for non-sensitive data
-6. Create the following repository variables:
+5. [Optional] Set a password in `secrets.ACCESS_PASSWORD` if you do not wish others to access your page. (see https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/pull/64)
+6. Go to Variables. Variables are shown as plain text and are used for non-sensitive data
+7. Create the following repository variables:
    1. `CATEGORIES`: separate the categories with ",", such as "cs.CL, cs.CV"
    2. `LANGUAGE`: such as "Chinese" or "English"
    3. `MODEL_NAME`: such as "deepseek-chat"
    4. `EMAIL`: your email for push to GitHub
    5. `NAME`: your name for push to GitHub
-7. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
-8. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
-9. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
-
-# To-do list
-- [x] Feature: Replace markdown with GitHub pages front-end.
-- [ ] Bugfix: In the statistics page, the number of papers for a keyword is not correct.
-- [ ] Bugfix: In the date picker, the date and week do not correspond.
-- [ ] Feature: Extract keywords with DeepSeek.
-- [x] Update instructions for fork users about how to use GitHub Pages.
+8. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
+9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
+10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
+</details>
 
 # Contributors
 Thanks to the following special contributors for contributing code, discovering bugs, and sharing useful ideas for this project!!!
@@ -94,7 +88,31 @@ Thanks to the following special contributors for contributing code, discovering 
       <td align="center" valign="top">
         <a href="https://github.com/Zhao2z"><img src="https://avatars.githubusercontent.com/u/141019403?v=4" width="100px;" alt="Zhao2z"/><br /><sub><b>Zhao2z</b></sub></a><br />
       </td>
+      <td align="center" valign="top">
+        <a href="https://github.com/eclipse0922"><img src="https://avatars.githubusercontent.com/u/6214316?v=4" width="100px;" alt="eclipse0922"/><br /><sub><b>eclipse0922</b></sub></a><br />
+      </td>
     </tr>
+
+
+  </tbody>
+  <tbody>
+   <tr>
+      <td align="center" valign="top">
+        <a href="https://github.com/xuemian168"><img src="https://avatars.githubusercontent.com/u/38741078?v=4" width="100px;" alt="xuemian168"/><br /><sub><b>xuemian168</b></sub></a><br />
+      </td>
+      <td align="center" valign="top">
+        <a href="https://github.com/Lrrrr549"><img src="https://avatars.githubusercontent.com/u/71866027?v=4" width="100px;" alt="Lrrrr549"/><br /><sub><b>Lrrrr549</b></sub></a><br />
+      </td>
+      <td align="center" valign="top">
+        <a href="https://github.com/AinzRimuru"><img src="https://avatars.githubusercontent.com/u/59441476?v=4" width="100px;" alt="AinzRimuru"/><br /><sub><b>AinzRimuru</b></sub></a><br />
+      </td>
+      <td align="center" valign="top">
+        <a href="https://github.com/fengxueguiren"><img src="https://avatars.githubusercontent.com/u/153522370?v=4" width="100px;" alt="fengxueguiren"/><br /><sub><b>fengxueguiren</b></sub></a><br />
+      </td>
+      <td align="center" valign="top">
+        <a href="https://github.com/zerocpp"><img src="https://avatars.githubusercontent.com/u/2630297?v=4" width="100px;" alt="fengxueguiren"/><br /><sub><b>zerocpp</b></sub></a><br />
+      </td>
+   </tr>
   </tbody>
 </table>
 
@@ -122,4 +140,7 @@ We sincerely thank the following individuals and organizations for their promoti
 
 # Star history
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dw-dengwei/daily-arXiv-ai-enhanced&type=Date)](https://www.star-history.com/#dw-dengwei/daily-arXiv-ai-enhanced&Date)
+[![Stargazers over time](https://starchart.cc/dw-dengwei/daily-arXiv-ai-enhanced.svg?variant=adaptive)](https://starchart.cc/dw-dengwei/daily-arXiv-ai-enhanced)
+
+# Buy me a coffee
+[here](./buy-me-a-coffee/README.md)

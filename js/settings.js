@@ -217,60 +217,162 @@ function initEventListeners() {
   addKeywordButton.addEventListener('click', () => {
     const keywordInput = document.getElementById('keywordInput');
     const keyword = keywordInput.value.trim();
-    
+
     if (keyword) {
-      addKeywordTag(keyword);
+      // 检测是否包含英文逗号，如果有则分割
+      if (keyword.includes(',')) {
+        const keywords = keyword.split(',').map(k => k.trim()).filter(k => k);
+        keywords.forEach(k => addKeywordTag(k));
+      } else {
+        addKeywordTag(keyword);
+      }
       keywordInput.value = '';
     }
   });
-  
+
   // 关键词输入框回车事件
   const keywordInput = document.getElementById('keywordInput');
   keywordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const keyword = keywordInput.value.trim();
-      
+
       if (keyword) {
-        addKeywordTag(keyword);
+        // 检测是否包含英文逗号，如果有则分割
+        if (keyword.includes(',')) {
+          const keywords = keyword.split(',').map(k => k.trim()).filter(k => k);
+          keywords.forEach(k => addKeywordTag(k));
+        } else {
+          addKeywordTag(keyword);
+        }
         keywordInput.value = '';
       }
     }
   });
-  
+
   // 作者添加按钮
   const addAuthorButton = document.getElementById('addAuthor');
   addAuthorButton.addEventListener('click', () => {
     const authorInput = document.getElementById('authorInput');
     const author = authorInput.value.trim();
-    
+
     if (author) {
-      addAuthorTag(author);
+      // 检测是否包含英文逗号，如果有则分割
+      if (author.includes(',')) {
+        const authors = author.split(',').map(a => a.trim()).filter(a => a);
+        authors.forEach(a => addAuthorTag(a));
+      } else {
+        addAuthorTag(author);
+      }
       authorInput.value = '';
     }
   });
-  
+
   // 作者输入框回车事件
   const authorInput = document.getElementById('authorInput');
   authorInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const author = authorInput.value.trim();
-      
+
       if (author) {
-        addAuthorTag(author);
+        // 检测是否包含英文逗号，如果有则分割
+        if (author.includes(',')) {
+          const authors = author.split(',').map(a => a.trim()).filter(a => a);
+          authors.forEach(a => addAuthorTag(a));
+        } else {
+          addAuthorTag(author);
+        }
         authorInput.value = '';
       }
     }
   });
-  
+
+  // 关键词复制按钮
+  const copyKeywordsButton = document.getElementById('copyKeywords');
+  copyKeywordsButton.addEventListener('click', copyKeywords);
+
+  // 作者复制按钮
+  const copyAuthorsButton = document.getElementById('copyAuthors');
+  copyAuthorsButton.addEventListener('click', copyAuthors);
+
   // 保存设置按钮
   const saveSettingsButton = document.getElementById('saveSettings');
   saveSettingsButton.addEventListener('click', saveSettings);
-  
+
   // 重置设置按钮
   const resetSettingsButton = document.getElementById('resetSettings');
   resetSettingsButton.addEventListener('click', resetSettings);
+}
+
+// 复制关键词到剪切板
+function copyKeywords() {
+  const keywordTags = document.getElementById('selectedKeywords').querySelectorAll('.category-button');
+  const keywords = [];
+  keywordTags.forEach(tag => {
+    const keywordName = tag.textContent.trim().replace('×', '').trim();
+    keywords.push(keywordName);
+  });
+
+  if (keywords.length === 0) {
+    showNotification('No keywords to copy!', 'info');
+    return;
+  }
+
+  const keywordsString = keywords.join(',');
+  copyToClipboard(keywordsString, 'Keywords copied to clipboard!');
+}
+
+// 复制作者到剪切板
+function copyAuthors() {
+  const authorTags = document.getElementById('selectedAuthors').querySelectorAll('.category-button');
+  const authors = [];
+  authorTags.forEach(tag => {
+    const authorName = tag.textContent.trim().replace('×', '').trim();
+    authors.push(authorName);
+  });
+
+  if (authors.length === 0) {
+    showNotification('No authors to copy!', 'info');
+    return;
+  }
+
+  const authorsString = authors.join(',');
+  copyToClipboard(authorsString, 'Authors copied to clipboard!');
+}
+
+// 复制到剪切板的通用函数
+function copyToClipboard(text, successMessage) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showNotification(successMessage, 'success');
+    }).catch(err => {
+      console.error('复制失败:', err);
+      fallbackCopyText(text, successMessage);
+    });
+  } else {
+    fallbackCopyText(text, successMessage);
+  }
+}
+
+// 后备复制方法（用于不支持 clipboard API 的浏览器）
+function fallbackCopyText(text, successMessage) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-9999px';
+  document.body.appendChild(textArea);
+  textArea.select();
+
+  try {
+    document.execCommand('copy');
+    showNotification(successMessage, 'success');
+  } catch (err) {
+    console.error('复制失败:', err);
+    showNotification('Failed to copy to clipboard', 'info');
+  }
+
+  document.body.removeChild(textArea);
 }
 
 // 保存设置

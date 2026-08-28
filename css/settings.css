@@ -216,14 +216,58 @@
 .keyword-section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.keyword-section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .keyword-section-title svg {
   width: 24px;
   height: 24px;
   color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.copy-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(100, 116, 139, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.copy-button:active {
+  transform: translateY(1px);
+}
+
+.copy-button svg {
+  width: 16px;
+  height: 16px;
+  color: inherit;
 }
 
 .empty-tag-message {
