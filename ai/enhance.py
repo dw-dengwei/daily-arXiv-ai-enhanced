@@ -6,9 +6,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 from queue import Queue
 from threading import Lock
-# INSERT_YOUR_CODE
-import requests
-
 import dotenv
 import argparse
 from tqdm import tqdm
@@ -21,6 +18,8 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 from structure import Structure
+from content_filter import is_sensitive
+from runtime import build_chat_openai_kwargs, raise_if_processing_failed
 
 if os.path.exists('.env'):
     dotenv.load_dotenv()
@@ -35,29 +34,6 @@ def parse_args():
     return parser.parse_args()
 
 def process_single_item(chain, item: Dict, language: str) -> Dict:
-    def is_sensitive(content: str) -> bool:
-        """
-        调用 spam.dw-dengwei.workers.dev 接口检测内容是否包含敏感词。
-        返回 True 表示触发敏感词，False 表示未触发。
-        """
-        try:
-            resp = requests.post(
-                "https://spam.dw-dengwei.workers.dev",
-                json={"text": content},
-                timeout=5
-            )
-            if resp.status_code == 200:
-                result = resp.json()
-                # 约定接口返回 {"sensitive": true/false, ...}
-                return result.get("sensitive", True)
-            else:
-                # 如果接口异常，默认不触发敏感词
-                print(f"Sensitive check failed with status {resp.status_code}", file=sys.stderr)
-                return True
-        except Exception as e:
-            print(f"Sensitive check error: {e}", file=sys.stderr)
-            return True
-
     def check_github_code(content: str) -> Dict:
         """提取并验证 GitHub 链接"""
         code_info = {}
@@ -150,9 +126,8 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
         item['AI'] = {**default_ai_fields, **partial_data}
         print(f"Using partial AI data for {item.get('id', 'unknown')}: {list(partial_data.keys())}", file=sys.stderr)
     except Exception as e:
-        # Catch any other exceptions and provide default values
         print(f"Unexpected error for {item.get('id', 'unknown')}: {e}", file=sys.stderr)
-        item['AI'] = default_ai_fields
+        raise RuntimeError(f"AI request failed for {item.get('id', 'unknown')}") from e
     
     # Final validation to ensure all required fields exist
     for field in default_ai_fields.keys():
@@ -168,9 +143,12 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
 def process_all_items(data: List[Dict], model_name: str, language: str, max_workers: int) -> List[Dict]:
     """并行处理所有数据项"""
     llm = ChatOpenAI(
-            model=model_name,
-            model_kwargs={"extra_body": {"thinking": {"type": "disabled"}}}
-        ).with_structured_output(Structure, method="function_calling")
+        **build_chat_openai_kwargs(
+            model_name=model_name,
+            base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            api_key=os.environ.get("OPENAI_API_KEY", ""),
+        )
+    ).with_structured_output(Structure, method="function_calling")
 
     print('Connect to:', model_name, file=sys.stderr)
     
@@ -183,6 +161,7 @@ def process_all_items(data: List[Dict], model_name: str, language: str, max_work
     
     # 使用线程池并行处理
     processed_data = [None] * len(data)  # 预分配结果列表
+    processing_errors = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 提交所有任务
         future_to_idx = {
@@ -202,21 +181,15 @@ def process_all_items(data: List[Dict], model_name: str, language: str, max_work
                 processed_data[idx] = result
             except Exception as e:
                 print(f"Item at index {idx} generated an exception: {e}", file=sys.stderr)
-                # Add default AI fields to ensure consistency
-                processed_data[idx] = data[idx]
-                processed_data[idx]['AI'] = {
-                    "tldr": "Processing failed",
-                    "motivation": "Processing failed",
-                    "method": "Processing failed",
-                    "result": "Processing failed",
-                    "conclusion": "Processing failed"
-                }
+                processing_errors.append(str(e))
+
+    raise_if_processing_failed(processing_errors)
     
     return processed_data
 
 def main():
     args = parse_args()
-    model_name = os.environ.get("MODEL_NAME", 'deepseek-chat')
+    model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
     language = os.environ.get("LANGUAGE", 'Chinese')
 
     # 检查并删除目标文件
