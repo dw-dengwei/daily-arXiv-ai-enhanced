@@ -70,6 +70,7 @@ Otherwise, you can watch the video above first and directly use this repo in htt
 
 # Contributors
 Thanks to the following special contributors for contributing code, discovering bugs, and sharing useful ideas for this project!!!
+If you find that I missed your contribution below, please feel free to contact me through email.
 <table>
   <tbody>
     <tr>
