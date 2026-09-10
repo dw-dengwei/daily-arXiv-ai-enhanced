@@ -1,0 +1,39 @@
+name: Refresh site password
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-auth:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update password hash
+        env:
+          ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
+        run: |
+          if [ -n "$ACCESS_PASSWORD" ]; then
+            PASSWORD_HASH=$(printf %s "$ACCESS_PASSWORD" | sha256sum | awk '{print $1}')
+          else
+            PASSWORD_HASH="DISABLED_NO_PASSWORD_SET_IN_SECRETS"
+          fi
+
+          sed -i -E "s|passwordHash: '[^']*'|passwordHash: '$PASSWORD_HASH'|" js/auth-config.js
+
+      - name: Commit password configuration
+        run: |
+          if git diff --quiet -- js/auth-config.js; then
+            echo "Password configuration is already current"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/auth-config.js
+          git commit -m "chore: refresh site password"
+          git push origin HEAD:main
