@@ -75,7 +75,7 @@ Otherwise, you can watch the video above first and directly use this repo in htt
    4. `EMAIL`: your email for push to GitHub
    5. `NAME`: your name for push to GitHub
 8. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
-9. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
+9. You can manually click **Run workflow** to test if it works well (it may take about one hour). This fork is scheduled daily at **09:37 Asia/Shanghai (01:37 UTC)** in `.github/workflows/run.yml`; GitHub may delay scheduled runs. If automatic runs stop while manual runs still work, check whether Actions is disabled and follow [GitHub's scheduled-workflow troubleshooting](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows#scheduled-workflow-stopped-running). A user with write access can change the cron schedule to reactivate scheduling; verify recovery with a new **Scheduled** run, not just a manual run.
 10. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 </details>
 
