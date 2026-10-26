@@ -5,7 +5,8 @@ from urllib.parse import urlparse
 
 def _should_disable_thinking(model_name: str, hostname: str) -> bool:
     normalized_model = model_name.lower()
-    return hostname.endswith("volces.com") or normalized_model.startswith("deepseek-")
+    is_volcengine = hostname == "volces.com" or hostname.endswith(".volces.com")
+    return is_volcengine or normalized_model.startswith("deepseek-")
 
 
 def build_chat_openai_kwargs(model_name: str, base_url: str, api_key: str) -> dict:
