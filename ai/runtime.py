@@ -3,6 +3,11 @@
 from urllib.parse import urlparse
 
 
+def _should_disable_thinking(model_name: str, hostname: str) -> bool:
+    normalized_model = model_name.lower()
+    return hostname.endswith("volces.com") or normalized_model.startswith("deepseek-")
+
+
 def build_chat_openai_kwargs(model_name: str, base_url: str, api_key: str) -> dict:
     """Build provider-safe ChatOpenAI settings from workflow configuration."""
     model_name = model_name.strip()
@@ -27,7 +32,7 @@ def build_chat_openai_kwargs(model_name: str, base_url: str, api_key: str) -> di
         "api_key": api_key,
     }
     hostname = urlparse(base_url).hostname or ""
-    if hostname.endswith("volces.com"):
+    if _should_disable_thinking(model_name, hostname):
         kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
     return kwargs
 
